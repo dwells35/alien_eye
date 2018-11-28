@@ -34,3 +34,4 @@ class Tracker:
 
         center = tracked_position.center()
         return center
+

@@ -130,16 +130,26 @@ def run_machine_vision(vs, stop_event):
      ANIMATION
 ####################
 '''
+def scale_point_to_display(center_point_raw, flip_horizontal = False):
+    x = center_point_raw[0]
+    y = center_point_raw[1]
+    if flip_horizontal:
+        x = input_video_width - x
+    norm_x = ((x / input_video_width) / suppression_factor) 
+    norm_y = ((y / input_video_height) / suppression_factor)
+    output_x = (norm_x * output_width) + (output_width / 2) - (output_width / (2 * suppression_factor))
+    output_y = (norm_y * output_height) + (output_height / 2) - (output_height / (2 * suppression_factor))
+    return (output_x, output_y)
 
-def map_center_to_corner(center_point_raw):
+def map_center_to_corner(scaled_point):
     #move the center of the detected face to a corresponding place in the output image
     #i.e., if the face was found in the center of the camera input image, and the camera image
     #was 480x480, then center = (240, 240), but the output image is much larger (maybe 1080x1080),
     #so the center value must be mapped to the center of the output image in order for things to look
     #correct
-    center_point = (offset_x - center_point_raw[0], center_point_raw[1] + offset_y)
+    #center_point = (offset_x - center_point_raw[0], center_point_raw[1] + offset_y)
     #convert detected center to corner point of image in order to give point 
-    return (center_point[0] - eye_width/2, center_point[1] - eye_height/2) 
+    return (scaled_point[0] - eye_width/2, scaled_point[1] - eye_height/2) 
 
 
 def update_position(position, designation):
@@ -147,7 +157,8 @@ def update_position(position, designation):
         position_prev = position
         designation_prev = designation
         center_position, designation = q.get()
-        position = map_center_to_corner(center_position)
+        scaled_point = scale_point_to_display(center_position, flip_horizontal = True)
+        position = map_center_to_corner(scaled_point)
         if designation - designation_prev == -1 \
         and not dilate_sprite.dilate_req \
         and abs(position[0] - position_prev[0]) > 5 \
@@ -162,10 +173,11 @@ def update_position(position, designation):
 
 def control_dilation(current_time):
     #control the dilation frequency
-    if dilate_sprite.dilate_req and not blinking:
+    if dilate_sprite.dilate_req and not blinking and not dilate_sprite.dilating:
         dilate_sprite.dilating = True
+        dilate_sprite.dilate_clock = current_time - 1
 
-    if dilate_sprite.dilating:
+    if dilate_sprite.dilating: 
         eye_im_show = dilate_sprite.dilate(current_time)
         
     else:
@@ -185,9 +197,12 @@ def control_blinking(current_time):
         blink_sprite.rand_blink_time = random.uniform(3.0, 6.0)
         blinking = True
         blink_sprite.last_blink_time = current_time
+        blink_sprite.blink_clock = current_time - 1
 
     if blinking:
-        blink_sprite.group_blink.update()
+        if current_time - blink_sprite.blink_clock > blink_sprite.blink_refresh_time:
+            blink_sprite.blink_clock = current_time
+            blink_sprite.group_blink.update()
         blink_sprite.group_blink.draw(out_display)
         if blink_sprite.index == 17:
             blinking = False
@@ -247,7 +262,7 @@ def handle_idle(current_time, smoothed_position, eye_im_show):
     return smoothed_position
 
 def run_main_animation(position, smoothed_position, eye_im_show):
-    smoothed_position = du.avg_center(position, smoothed_position)
+    smoothed_position = du.avg_center(position, smoothed_position, 1/10)
     out_display.fill((0,0,0))
     out_display.blit(eye_im_show, smoothed_position)
     return smoothed_position
@@ -266,22 +281,25 @@ def initialize_globals():
     global q; q = Queue(maxsize=6)
     #Use this to toggle optional features useful for debugging. Set to False for production.
     global DEBUG; DEBUG = True
+    #set factor to supress eye image motion
+    global suppression_factor; suppression_factor = 4
     #initialize output animation width and height
-    #Match this to the chosen resolution of the screen 
-    global output_width; output_width = 1920
-    global output_height; output_height = 1080
-    #initialize the size of the video stram coming from the camera
-    global input_video_width; input_video_width = 480
-    global input_video_height; input_video_height = 480
+    #Match this to the chosen resolution of the screen; Also, ensure that the aspect ratio matche with this value
+    global output_width; output_width = 931
+    global output_height; output_height = 698
+    #initialize the size of the video stram coming from the camera; Make sure the chosen aspect ratio works with this value
+    global input_video_width; input_video_width = 320
+    global input_video_height; input_video_height = 240
     #initialize output display of pygame
     global out_display; out_display = pygame.display.set_mode((output_width, output_height))
-    #initialize default eye image and images size
-    global default_eye_image; default_eye_image = pygame.image.load('prod_eye_dil/Pupil dilation 00.png').convert_alpha()
-    global eye_width; eye_width = default_eye_image.get_width()
-    global eye_height; eye_height = default_eye_image.get_height()
+    #initialize eye image and size
+    global eye_width; eye_width = 350
+    global eye_height; eye_height = 350
     #initialize blink and dilation sprites for use in animation;
     global blink_sprite; blink_sprite = Blink_Sprite(output_width, output_height)
     global dilate_sprite; dilate_sprite = Dilate_Sprite(eye_width, eye_height)
+    #initialize default eye image
+    global default_eye_image; default_eye_image = dilate_sprite.images[0] 
     #initialize offsets to be used for detected/tracked center points to image corner points
     global offset_x; offset_x = (int(output_width / 2) + int(input_video_width / 2))
     global offset_y; offset_y = (int(output_height / 2) - int(input_video_height / 2))
@@ -295,7 +313,7 @@ def initialize_globals():
     global CENTER; CENTER = (int((output_width -  eye_width)/2),
                  int((output_height - eye_height)/2))
     #set desired framerate
-    global FRAMERATE; FRAMERATE = 30
+    global FRAMERATE; FRAMERATE = 40
     #initialize time delta to control how often the animation updates
     global DELTA_T; DELTA_T = (1/FRAMERATE)
     #initialize an idler to handle when the program is at idle
@@ -350,7 +368,10 @@ def main():
     running = True
     #Initialize clock to control refresh rate of PyGame
     clock = pygame.time.Clock()
+    #fps counter initialize
+    count = 0
     try:
+        start_fps_timer = time.time()
         while running:
             clock.tick(FRAMERATE)
             current_time = time.time()
@@ -379,13 +400,17 @@ def main():
                     running = False
                     stop_event.set()
                     print("set_stop_event")
-
+            
+            count += 1
     except Service_Exit:
         stop_event.set()
     except KeyboardInterrupt:
         stop_event.set()
 
     finally:
+        end_fps_timer = time.time()
+        fps = count / (end_fps_timer - start_fps_timer)
+        print("FPS: " + str(fps))
         print('hit finally')
         while not q.empty():
             temp = q.get()
