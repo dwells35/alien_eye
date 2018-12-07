@@ -11,7 +11,9 @@ class Idler():
         self._idle_list = ['roll_idle', 'random_idle']
         self._idle_func = self._idle_list[0]
         self._idle_watch_start = time.time()
-        self._IDLE_TIME_TRIGGER = 5
+        #set time that idle condition must stay true to
+        #trigger an idle behavior
+        self._IDLE_TIME_TRIGGER = 7
         self._idle_position = self._CENTER
         self._blink_count = 0
         self._OUTPUT_WIDTH, self._OUTPUT_HEIGHT = output_dims
@@ -58,7 +60,7 @@ class Idler():
                 random_y = random.randint(0, self._OUTPUT_HEIGHT - self._EYE_HEIGHT)
                 self._prev_idle_time = time.time()
                 self._idle_position = (random_x, random_y)
-            smoothed_position = du.avg_center(self._idle_position, smoothed_position)
+            smoothed_position = du.avg_center(self._idle_position, smoothed_position, 1/2)
             return smoothed_position
 
 

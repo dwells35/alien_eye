@@ -14,7 +14,7 @@ class Deep_Detector:
         self._net = cv2.dnn.readNetFromCaffe(self._prototxt, self._caffe_model)
 
     def get_refresh_rate(self):
-        """Return the refresh rate in milliseconds for the detector"""
+        """Return the refresh rate in seconds for the detector"""
         return self._refresh_rate
 
     def get_glance_style(self):
