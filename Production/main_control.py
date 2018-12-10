@@ -439,6 +439,9 @@ def main():
             #update output display
             pygame.display.update()
             #check to see if game has been exited (by hitting the red "X" on the display)
+            #Since the event queue is cleared on every loop by the "check_ball_in_hole" command, one
+            #may need to spam the ESCAPE key to get this to fire since the event must be triggered between that fucntion
+            #and this one
             for event in pygame.event.get():
                 if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                     running = False
