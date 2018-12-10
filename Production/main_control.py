@@ -19,6 +19,7 @@ import threading
 import multiprocessing
 import signal
 from Idler import Idler
+import sys
 
 
 '''
@@ -144,6 +145,7 @@ def run_machine_vision(q, sub_pipe_end, video_dims):
     fps = count / (end_machine_vision_time - start_machine_vision_time)
     print('Machine Vision fps: ' + str(fps))
     vs.stop()
+    cv2.destroyAllWindows()
     print('Detector Count: ' + str(detector_count))
 
 
@@ -236,12 +238,16 @@ def check_ball_in_hole(smoothed_position):
 
     #initialize i = 0 and increasing = True for ball_in_hole sequence
     sequence_info = (smoothed_position, 0, True)
-    if pygame.key.get_pressed()[pygame.K_h] and not ball_in_hole:
-        ball_in_hole_time_start = time.time()
-        ball_in_hole = True
-        dilate_sprite.dilate_req = True
+    #event is a queue run by pygame that handles all input. When "get" is called,
+    #it will return all the messages that have accumulated in the queue. Here, we
+    #iterate over each message to see if it's what we want.
+    #This will cause the ball_in_hole event to fire when the 'h' key is pressed on the keyboard
+    for event in pygame.event.get():
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_h and not ball_in_hole:
+            ball_in_hole_time_start = time.time()
+            ball_in_hole = True
+            dilate_sprite.dilate_req = True
 
-    
     return sequence_info
 
 def handle_ball_in_hole(current_time, sequencer_info, eye_im_show):
@@ -358,12 +364,16 @@ def initialize_globals():
 
 def setup():
      #initialize PyGame for output animation
-    pygame.init()
+    pygame.display.init()
     initialize_globals()
     #create a caption for the output display
     pygame.display.set_caption('Alien Eye')
      # initialize the video stream and allow the cammera sensor to warmup
     print("[INFO] starting video stream...")
+    #Only allow pygame events of type KEYDOWN and type QUIT into the pygame event queue. This prevents it 
+    #from ever getting bloated. This queue is automatically setup by pygame but must be manually emptied
+    #with get() or poll(). See "check_ball_in_hole()" for information on pygame.event.get()
+    pygame.event.set_allowed([pygame.KEYDOWN, pygame.QUIT])
     
     video_dims = (input_video_width, input_video_height)
     
@@ -455,16 +465,16 @@ def main():
         fps = count / (end_fps_timer - start_fps_timer)
         print("animation FPS: " + str(fps))
         print('hit finally')
+        #empty the queue
         while not q.empty():
             temp = q.get()
             q.task_done()
         q.join()
         machine_vision_subprocess.join()
         pygame.quit()
-        cv2.destroyAllWindows()
         print("Ended Gracefully")
+        print('Subprocess is still live: ' + str(machine_vision_subprocess.is_alive()))
         quit()
-        
         
 if __name__ == '__main__':
     main()
