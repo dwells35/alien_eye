@@ -120,11 +120,16 @@ class PTCamera:
 	def stop(self):
 		# indicate that the thread should be stopped
 		self.stopped = True
+		self._camThread.join()
 		self.c.stopCapture()
 		self.c.disconnect()
 		print("Camera acquisition stopped")
 		time_start = time.time()
 
+
+#Run PTCamera as main in order to test camera. This means running PTCamera directly
+#from the command line; else, main will not run
+#usage: user:~/[your path here]$ python3 PTCamera.py
 def main():
 	vs = PTCamera().start()
 	running = True
