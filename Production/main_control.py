@@ -307,14 +307,17 @@ def initialize_globals():
     camera_horiz_angle_of_view = 90
     global eye_view_adjustment_factor; eye_view_adjustment_factor = 360 / camera_horiz_angle_of_view
     #initialize output animation width and height
+    #Get an object containing information about the detected output screen
+    screen_info = pygame.display.Info()
     #Match this to the chosen resolution of the screen; Also, ensure that the aspect ratio matche with this value
-    global output_width; output_width = 1024
-    global output_height; output_height = 768
+    global output_width; output_width = screen_info.current_w
+    global output_height; output_height = screen_info.current_h
     #initialize the size of the video stram coming from the camera; Make sure the chosen aspect ratio works with this value
     global input_video_width; input_video_width = 640
     global input_video_height; input_video_height = 480
     #initialize output display of pygame
-    global out_display; out_display = pygame.display.set_mode((output_width, output_height))
+    #pygame.NOFRAME parameter gets rid of title bar
+    global out_display; out_display = pygame.display.set_mode((output_width, output_height), pygame.NOFRAME)
     #initialize eye image and size
     global eye_width; eye_width = 350
     global eye_height; eye_height = 350
