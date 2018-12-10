@@ -115,8 +115,8 @@ def run_machine_vision(q, sub_pipe_end, video_dims):
     tracked_center = (0,0)
     running = True
     start_machine_vision_time = time.time()
-    count = 0
-    detector_count = 0
+    #count = 0
+    #detector_count = 0
     while running:
         if sub_pipe_end.poll():
             running = sub_pipe_end.recv()
@@ -127,11 +127,11 @@ def run_machine_vision(q, sub_pipe_end, video_dims):
         if not tracking_face or current_time - last_detector_update_time > net.get_refresh_rate():
             last_detector_update_time = current_time
             tracking_face = run_detector(net, frame, tracker, q)
-            count += 1
-            detector_count += 1
+            #count += 1
+            #detector_count += 1
 
         if tracking_face:
-            count += 1
+            #count += 1
             track_quality = tracker.get_track_quality(frame)
             if track_quality >= tracker.get_quality_threshold():
                 run_tracker(tracker, frame, q)
@@ -142,11 +142,11 @@ def run_machine_vision(q, sub_pipe_end, video_dims):
         
 
     end_machine_vision_time = time.time()
-    fps = count / (end_machine_vision_time - start_machine_vision_time)
-    print('Machine Vision fps: ' + str(fps))
+    #fps = count / (end_machine_vision_time - start_machine_vision_time)
+    #print('Machine Vision fps: ' + str(fps))
     vs.stop()
     cv2.destroyAllWindows()
-    print('Detector Count: ' + str(detector_count))
+    #print('Detector Count: ' + str(detector_count))
 
 
 '''
@@ -410,7 +410,7 @@ def main():
     #Initialize clock to control refresh rate of PyGame
     clock = pygame.time.Clock()
     #fps counter initialize
-    count = 0
+    #count = 0
     try:
         profiling_watch_end = time.time()
         start_fps_timer = time.time()
@@ -456,7 +456,7 @@ def main():
                 print("set_stop_event")
             '''
             profiling_watch_end = time.time()
-            count += 1
+            #count += 1
     except Service_Exit:
         stop_event.set()
         main_pipe_end.send(False)
@@ -466,8 +466,8 @@ def main():
 
     finally:
         end_fps_timer = time.time()
-        fps = count / (end_fps_timer - start_fps_timer)
-        print("animation FPS: " + str(fps))
+        #fps = count / (end_fps_timer - start_fps_timer)
+        #print("animation FPS: " + str(fps))
         print('hit finally')
         #empty the queue
         while not q.empty():

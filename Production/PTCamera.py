@@ -9,7 +9,7 @@ class PTCamera:
 
 	def __init__(self, resolution = (640, 480)):
 		self.stopped = False
-		self._update_count = 0
+		#self._update_count = 0
 		# Ensure sufficient cameras are found
 		bus = PyCapture2.BusManager()
 		num_cams = bus.getNumOfCameras()
@@ -71,7 +71,7 @@ class PTCamera:
 			image_data = new_image.getData()
 			self._frame = image_data.reshape((new_image.getRows(), new_image.getCols(), 3))
 			#increment frame captured counter for fps calculation
-			self._update_count += 1
+			#self._update_count += 1
 		except PyCapture2.Fc2error as fc2Err:
 	    		print('Error retrieving buffer : %s' % fc2Err)
 
@@ -98,17 +98,16 @@ class PTCamera:
 	'''
 	def read(self):
 		# return the frame most recently read
-		if self._update_count == 0:
-			self._start_capture_time = time.time()
+		#if self._update_count == 0:
+		#	self._start_capture_time = time.time()
 		self.update()
 		return self._frame
 
 	def stop(self):
 		# indicate that the thread should be stopped
-		self._end_capture_time = time.time()
-		fps = self._update_count / (self._end_capture_time - self._start_capture_time)
-		print('Camera capture fps: ' + str(fps))
+		#self._end_capture_time = time.time()
+		#fps = self._update_count / (self._end_capture_time - self._start_capture_time)
+		#print('Camera capture fps: ' + str(fps))
 		self.c.stopCapture()
 		self.c.disconnect()
 		print("Camera acquisition stopped")
-		time_start = time.time()
