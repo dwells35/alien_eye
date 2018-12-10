@@ -7,9 +7,9 @@ class Blink_Sprite(pygame.sprite.Sprite):
         super(Blink_Sprite, self).__init__()
         self.images = []
         for i in range(1, 10, 1):
-            self.images.append(pygame.image.load('blink_ims_2/Nictitating membrane update2 0%s.png' % str(i)).convert_alpha())
+            self.images.append(pygame.image.load('blink_images/Nictitating membrane update2 0%s.png' % str(i)).convert_alpha())
         for i in range(9,0,-1):
-            self.images.append(pygame.image.load('blink_ims_2/Nictitating membrane update2 0%s.png' % str(i)).convert_alpha())
+            self.images.append(pygame.image.load('blink_images/Nictitating membrane update2 0%s.png' % str(i)).convert_alpha())
         for i in range(len(self.images)):
             self.images[i] = pygame.transform.scale(self.images[i], (output_width, output_height))
 

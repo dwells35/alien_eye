@@ -56,8 +56,10 @@ class Idler():
 
         elif self._idle_func == 'random_idle':
             if current_time - self._prev_idle_time > .75:
-                random_x = random.randint(0, self._OUTPUT_WIDTH - self._EYE_WIDTH)
-                random_y = random.randint(0, self._OUTPUT_HEIGHT - self._EYE_HEIGHT)
+                #Use of decimal multiplier on next two lines restricts the effective
+                #bounding box in which the eye may look during random idle
+                random_x = random.randint(int(.25 * self._OUTPUT_WIDTH), int(.75 * (self._OUTPUT_WIDTH - self._EYE_WIDTH)))
+                random_y = random.randint(int(.25 * self._OUTPUT_HEIGHT), int(.75 * (self._OUTPUT_HEIGHT - self._EYE_HEIGHT)))
                 self._prev_idle_time = time.time()
                 self._idle_position = (random_x, random_y)
             smoothed_position = du.avg_center(self._idle_position, smoothed_position, 1/2)

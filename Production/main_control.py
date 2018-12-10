@@ -2,6 +2,7 @@
 import display_utils as du
 from imutils.video import VideoStream
 from imutils.video import FileVideoStream
+from PTCamera import PTCamera
 from Deep_Detector import Deep_Detector
 from Tracker import Tracker
 from Blink_Sprite import Blink_Sprite
@@ -15,9 +16,10 @@ import dlib
 import pygame
 from queue import Queue
 import threading
+import multiprocessing
 import signal
 from Idler import Idler
-from Program_Data import Program_Data
+
 
 '''
 ####################
@@ -43,7 +45,7 @@ def get_detection_data(indices, net, detections):
 #If none are found, tracking_face is False, and the detector tries again on the next frame.
 
 #NOTE: put() and get() from the queue has built in blocking calls; no additional locks necessary
-def run_detector(net, frame, tracker):
+def run_detector(net, frame, tracker, q):
     detections = net.get_detections(frame)
     indices = net.get_detection_inds(detections)
     tracking_face = False
@@ -52,11 +54,9 @@ def run_detector(net, frame, tracker):
 
         startX, startY, endX, endY = bounding_box
 
-        if (startX * startY) > 0:
+        if (endX - startX) < 45 and not q.full():
             tracker = start_tracker(tracker, frame, startX, startY, endX, endY)
-            tracking_face = True       
-
-        if not q.full():
+            tracking_face = True
             q.put((detected_center_raw, 0))
 
         if DEBUG:
@@ -64,13 +64,15 @@ def run_detector(net, frame, tracker):
                 cv2.rectangle(frame, (startX, startY), (endX, endY),
                 (0, 0, 255), 2)
                 cv2.imshow('main frame', frame)
+    else:
+        cv2.imshow('main frame', frame)
 
     return tracking_face
 
 #Gets center point of updated bouning box from tracker; puts this in the queue for animation
 
 #NOTE: put() and get() from the queue has built in blocking calls; no additional locks necessary
-def run_tracker(tracker, frame):
+def run_tracker(tracker, frame, q):
     tracked_center_raw = tracker.update_position(frame)
     tracked_center_raw = (tracked_center_raw.x, tracked_center_raw.y)
     if not q.full():
@@ -81,10 +83,10 @@ def run_tracker(tracker, frame):
 #Creates a tracker based on the bounding box returned from the detector
 def start_tracker(tracker, frame, startX, startY, endX, endY):
     tracker.get_tracker().start_track(frame, 
-                        dlib.rectangle( startX + 10,
-                                        startY - 20,
-                                        endX + 10,
-                                        endY + 20))
+                        dlib.rectangle( startX,
+                                        startY,
+                                        endX,
+                                        endY))
     return tracker
 
 #This function runs the machine vision portion of the eye. 
@@ -93,10 +95,12 @@ def start_tracker(tracker, frame, startX, startY, endX, endY):
 #   stop_event: stop event is triggered when the program either quits as expected, recieve as SIGINT (CTRL + C) signal, or
 #       SIGTERM signal from the CPU. The stop event terminates the thread's execution gracefully
 #This function manages both the detector (neural net) and the tracker.
-def run_machine_vision(vs, stop_event):
+def run_machine_vision(q, sub_pipe_end, video_dims):
     # load our serialized model from disk
+    vs = PTCamera(resolution = video_dims).start()
+    time.sleep(2)
     print("[INFO] loading model...")
-    net = Deep_Detector('deploy.prototxt.txt','res10_300x300_ssd_iter_140000.caffemodel', refresh_rate = 5)
+    net = Deep_Detector('deploy.prototxt.txt','res10_300x300_ssd_iter_140000.caffemodel', refresh_rate = 5, confidence = .4)
 
     #initialize a tracker
     print("[INFO] initializing tracker")
@@ -106,23 +110,39 @@ def run_machine_vision(vs, stop_event):
     current_time = time.time()
     tracking_face = False
     tracked_center = (0,0)
-    while not stop_event.is_set():
+    running = True
+    start_machine_vision_time = time.time()
+    count = 0
+    detector_count = 0
+    while running:
+        if sub_pipe_end.poll():
+            running = sub_pipe_end.recv()
         current_time = time.time()
         frame = vs.read()
         frame = imutils.resize(frame, width=input_video_width)
 
         if not tracking_face or current_time - last_detector_update_time > net.get_refresh_rate():
             last_detector_update_time = current_time
-            tracking_face = run_detector(net, frame, tracker)
+            tracking_face = run_detector(net, frame, tracker, q)
+            count += 1
+            detector_count += 1
 
         if tracking_face:
+            count += 1
             track_quality = tracker.get_track_quality(frame)
             if track_quality >= tracker.get_quality_threshold():
-                run_tracker(tracker, frame)
+                run_tracker(tracker, frame, q)
             else:
                 tracking_face = False 
 
         cv2.waitKey(2)
+        
+
+    end_machine_vision_time = time.time()
+    fps = count / (end_machine_vision_time - start_machine_vision_time)
+    print('Machine Vision fps: ' + str(fps))
+    vs.stop()
+    print('Detector Count: ' + str(detector_count))
 
 
 '''
@@ -135,10 +155,10 @@ def scale_point_to_display(center_point_raw, flip_horizontal = False):
     y = center_point_raw[1]
     if flip_horizontal:
         x = input_video_width - x
-    norm_x = ((x / input_video_width) / suppression_factor) 
-    norm_y = ((y / input_video_height) / suppression_factor)
-    output_x = (norm_x * output_width) + (output_width / 2) - (output_width / (2 * suppression_factor))
-    output_y = (norm_y * output_height) + (output_height / 2) - (output_height / (2 * suppression_factor))
+    norm_x = ((x / input_video_width) / eye_view_adjustment_factor) 
+    norm_y = ((y / input_video_height) / eye_view_adjustment_factor)
+    output_x = (norm_x * output_width) + (output_width / 2) - (output_width / (2 * eye_view_adjustment_factor))
+    output_y = (norm_y * output_height) + (output_height / 2) - (output_height / (2 * eye_view_adjustment_factor))
     return (output_x, output_y)
 
 def map_center_to_corner(scaled_point):
@@ -152,7 +172,7 @@ def map_center_to_corner(scaled_point):
     return (scaled_point[0] - eye_width/2, scaled_point[1] - eye_height/2) 
 
 
-def update_position(position, designation):
+def update_position(position, designation, q):
     if not q.empty():
         position_prev = position
         designation_prev = designation
@@ -168,6 +188,7 @@ def update_position(position, designation):
         q.task_done()
     else:
         position_prev = position
+
 
     return position, position_prev, designation
 
@@ -246,7 +267,8 @@ def handle_ball_in_hole(current_time, sequencer_info, eye_im_show):
     return (smoothed_position, i, increasing)
 
 def check_idle(position, position_prev, current_time):
-    if abs(position[0] - position_prev[0]) < 5 and abs(position[1] - position_prev[1]) < 5 and not ball_in_hole:
+    #check to see if the coordinate received from the machine vision pipeline is within a 3x3 bounding box of the previous coordinate
+    if abs(position[0] - position_prev[0]) < 1 and abs(position[1] - position_prev[1]) < 1 and not ball_in_hole:
         idle_time = current_time - idler.get_idle_watch_start()
         if idle_time > idler.get_idle_time_trigger() and not idler.is_idle():
             idler.begin_idle()
@@ -277,21 +299,25 @@ def service_shutdown(signum, frame):
     raise Service_Exit
 
 def initialize_globals():
-     #initialize Queue to pass data from detector thread to main thread
-    global q; q = Queue(maxsize=6)
+     
     #Use this to toggle optional features useful for debugging. Set to False for production.
     global DEBUG; DEBUG = True
-    #set factor to supress eye image motion
-    global suppression_factor; suppression_factor = 4
+    #set factor to make eye look at a person. This factor helps map a coordinate to an artificial bounding box
+    #in which the eye can move so that its range of motion will align with the camera's field of view
+    camera_horiz_angle_of_view = 90
+    global eye_view_adjustment_factor; eye_view_adjustment_factor = 360 / camera_horiz_angle_of_view
     #initialize output animation width and height
+    #Get an object containing information about the detected output screen
+    screen_info = pygame.display.Info()
     #Match this to the chosen resolution of the screen; Also, ensure that the aspect ratio matche with this value
-    global output_width; output_width = 931
-    global output_height; output_height = 698
+    global output_width; output_width = screen_info.current_w
+    global output_height; output_height = screen_info.current_h
     #initialize the size of the video stram coming from the camera; Make sure the chosen aspect ratio works with this value
-    global input_video_width; input_video_width = 320
-    global input_video_height; input_video_height = 240
+    global input_video_width; input_video_width = 640
+    global input_video_height; input_video_height = 480
     #initialize output display of pygame
-    global out_display; out_display = pygame.display.set_mode((output_width, output_height))
+    #pygame.NOFRAME parameter gets rid of title bar
+    global out_display; out_display = pygame.display.set_mode((output_width, output_height), pygame.NOFRAME)
     #initialize eye image and size
     global eye_width; eye_width = 350
     global eye_height; eye_height = 350
@@ -313,7 +339,7 @@ def initialize_globals():
     global CENTER; CENTER = (int((output_width -  eye_width)/2),
                  int((output_height - eye_height)/2))
     #set desired framerate
-    global FRAMERATE; FRAMERATE = 40
+    global FRAMERATE; FRAMERATE = 30
     #initialize time delta to control how often the animation updates
     global DELTA_T; DELTA_T = (1/FRAMERATE)
     #initialize an idler to handle when the program is at idle
@@ -334,24 +360,25 @@ def setup():
     print("[INFO] starting video stream...")
     
     video_dims = (input_video_width, input_video_height)
-    vs = VideoStream(src = 0, resolution = video_dims).start()
+    
     #use FileVideoStream to read video from a file for testing
     #vs = FileVideoStream('no_vis_light.mp4').start()
-    time.sleep(2.0)
-
+    #initialize Queue to pass data from detector thread to main thread
+    sub_pipe_end, main_pipe_end = multiprocessing.Pipe(duplex = False)
+    q = multiprocessing.JoinableQueue(maxsize=6)
     #Start running the detector and the tracker on seperate threads so that they won't bog down
     #the output display speed
-    detector_thread = threading.Thread(target = run_machine_vision, args=(vs, stop_event))
-    detector_thread.start()
+    machine_vision_subprocess = multiprocessing.Process(target = run_machine_vision, args=(q, sub_pipe_end, video_dims))
+    machine_vision_subprocess.start()
     #setup signals to let the program capture user sent termiantion (SIGINT) and program sent termination (SIGTERM)
     signal.signal(signal.SIGTERM, service_shutdown)
     signal.signal(signal.SIGINT, service_shutdown)
 
-    return detector_thread, vs
+    return machine_vision_subprocess, q, main_pipe_end
 
 def main():
     #setup pygame, video stream, and detector thread; return detector thread and video strean so main can stop these later.
-    detector_thread, vs = setup()
+    machine_vision_subprocess, q, main_pipe_end = setup()
     #initialize previous time to use for checking when to run the animation loop
     previous_time = 0
     #initialize designation for center point given to queue
@@ -371,11 +398,12 @@ def main():
     #fps counter initialize
     count = 0
     try:
+        profiling_watch_end = time.time()
         start_fps_timer = time.time()
         while running:
             clock.tick(FRAMERATE)
             current_time = time.time()
-            position, position_prev, designation = update_position(position, designation)
+            position, position_prev, designation = update_position(position, designation, q)
             eye_im_show = control_dilation(current_time)
 
             if not ball_in_hole:
@@ -396,32 +424,41 @@ def main():
             pygame.display.update()
             #check to see if game has been exited (by hitting the red "X" on the display)
             for event in pygame.event.get():
-                if event.type == pygame.QUIT:
+                if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                     running = False
                     stop_event.set()
+                    main_pipe_end.send(False)
                     print("set_stop_event")
-            
+            '''
+            if profiling_watch_end - start_fps_timer > 30:
+                running = False
+                stop_event.set()
+                print("set_stop_event")
+            '''
+            profiling_watch_end = time.time()
             count += 1
     except Service_Exit:
         stop_event.set()
+        main_pipe_end.send(False)
     except KeyboardInterrupt:
         stop_event.set()
+        main_pipe_end.send(False)
 
     finally:
         end_fps_timer = time.time()
         fps = count / (end_fps_timer - start_fps_timer)
-        print("FPS: " + str(fps))
+        print("animation FPS: " + str(fps))
         print('hit finally')
         while not q.empty():
             temp = q.get()
             q.task_done()
         q.join()
-        detector_thread.join()
-        vs.stop()
+        machine_vision_subprocess.join()
         pygame.quit()
         cv2.destroyAllWindows()
         print("Ended Gracefully")
         quit()
+        
         
 if __name__ == '__main__':
     main()

@@ -8,9 +8,9 @@ class Dilate_Sprite(pygame.sprite.Sprite):
         self.images = []
         self.MAX_DILATION_FRAME = 7
         for i in range(0, self.MAX_DILATION_FRAME + 1):
-            self.images.append(pygame.image.load('prod_eye_dil/Pupil dilation 0%s.png' % str(i)).convert_alpha())
+            self.images.append(pygame.image.load('eye_dilation_images/Pupil dilation 0%s.png' % str(i)).convert_alpha())
         for i in range(self.MAX_DILATION_FRAME, -1, -1):
-            self.images.append(pygame.image.load('prod_eye_dil/Pupil dilation 0%s.png' % str(i)).convert_alpha())
+            self.images.append(pygame.image.load('eye_dilation_images/Pupil dilation 0%s.png' % str(i)).convert_alpha())
         for i in range(len(self.images)):
             self.images[i] = pygame.transform.scale(self.images[i], (eye_width, eye_height))
         self.index = 0
