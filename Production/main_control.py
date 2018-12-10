@@ -319,11 +319,9 @@ def initialize_globals():
     screen_info = pygame.display.Info()
     #Match this to the chosen resolution of the screen; Also, ensure that the aspect ratio matche with this value
     print('detected screen size: %sx%s' % (str(screen_info.current_w), str(screen_info.current_h)))
-    #These next two lines are commented out while I work on my landlady's TV at home. It's large. 
-    #global output_width; output_width = screen_info.current_w
-    #global output_height; output_height = screen_info.current_h
-    global output_width; output_width = 1024
-    global output_height; output_height = 968
+    #set global ouput width and height to detected screen resolution 
+    global output_width; output_width = screen_info.current_w
+    global output_height; output_height = screen_info.current_h
     #initialize the size of the video stram coming from the camera; Make sure the chosen aspect ratio works with this value
     global input_video_width; input_video_width = 640
     global input_video_height; input_video_height = 480
