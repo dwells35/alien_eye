@@ -232,7 +232,7 @@ def control_blinking(current_time):
         if blink_sprite.index == 17:
             blinking = False
 
-def check_ball_in_hole(smoothed_position):
+def check_ball_in_hole(smoothed_position, events):
     global ball_in_hole
     global ball_in_hole_time_start
 
@@ -242,7 +242,7 @@ def check_ball_in_hole(smoothed_position):
     #it will return all the messages that have accumulated in the queue. Here, we
     #iterate over each message to see if it's what we want.
     #This will cause the ball_in_hole event to fire when the 'h' key is pressed on the keyboard
-    for event in pygame.event.get():
+    for event in events:
         if event.type == pygame.KEYDOWN and event.key == pygame.K_h and not ball_in_hole:
             ball_in_hole_time_start = time.time()
             ball_in_hole = True
@@ -417,11 +417,13 @@ def main():
         while running:
             clock.tick(FRAMERATE)
             current_time = time.time()
+            #get all events for this loop; clears the queue
+            events = pygame.event.get()
             position, position_prev, designation = update_position(position, designation, q)
             eye_im_show = control_dilation(current_time)
 
             if not ball_in_hole:
-                sequence_info = check_ball_in_hole(smoothed_position)
+                sequence_info = check_ball_in_hole(smoothed_position, events)
             if ball_in_hole:
                 sequence_info = handle_ball_in_hole(current_time, sequence_info, eye_im_show)
                 smoothed_position = sequence_info[0]
@@ -440,12 +442,13 @@ def main():
             #Since the event queue is cleared on every loop by the "check_ball_in_hole" command, one
             #may need to spam the ESCAPE key to get this to fire since the event must be triggered between that fucntion
             #and this one
-            for event in pygame.event.get():
+            for event in events:
                 if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                     running = False
                     stop_event.set()
                     main_pipe_end.send(False)
                     print("set_stop_event")
+
             '''
             if profiling_watch_end - start_fps_timer > 30:
                 running = False
