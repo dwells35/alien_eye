@@ -9,7 +9,7 @@ class PTCamera:
 
 	def __init__(self, resolution = (640, 480)):
 		self.stopped = False
-		self._update_count = 0
+
 		# Ensure sufficient cameras are found
 		bus = PyCapture2.BusManager()
 		num_cams = bus.getNumOfCameras()
@@ -62,20 +62,37 @@ class PTCamera:
 			self.c.disconnect()
 			quit()
 
+	def start(self):
+		self._camThread = Thread(target=self.update, args=())
+		self._camThread.start()
+		return self
+
 	def update(self):
 		# keep looping infinitely until the thread is stopped
-		
-		try:
-			image = self.c.retrieveBuffer()
-			new_image = image.convert(PyCapture2.PIXEL_FORMAT.BGR)
-			image_data = new_image.getData()
-			self._frame = image_data.reshape((new_image.getRows(), new_image.getCols(), 3))
-			#increment frame captured counter for fps calculation
-			self._update_count += 1
-		except PyCapture2.Fc2error as fc2Err:
-	    		print('Error retrieving buffer : %s' % fc2Err)
+		start_capture_time = time.time()
+		count = 0
+		while True:
+			#.017 was determined emperically to nearly match machine vision and camera refresh rates
+			time.sleep(.02)
+			# if the thread indicator variable is set, stop the thread
+			if self.stopped:
+				print('Camera update stopped')
+				break
+		# otherwise, read the next frame from the stream
+			try:
+				image = self.c.retrieveBuffer()
+				new_image = image.convert(PyCapture2.PIXEL_FORMAT.BGR)
+				image_data = new_image.getData()
+				self._frame = image_data.reshape((new_image.getRows(), new_image.getCols(), 3))
+				#increment frame captured counter for fps calculation
+				count += 1
+			except PyCapture2.Fc2error as fc2Err:
+		    		print('Error retrieving buffer : %s' % fc2Err)
+		    		continue
 
-
+		end_capture_time = time.time()
+		fps = count / (end_capture_time - start_capture_time)
+		print('Camera capture fps: ' + str(fps))
 	'''
 	def convertToCVmat(self, pImage):
 
@@ -98,17 +115,37 @@ class PTCamera:
 	'''
 	def read(self):
 		# return the frame most recently read
-		if self._update_count == 0:
-			self._start_capture_time = time.time()
-		self.update()
 		return self._frame
 
 	def stop(self):
 		# indicate that the thread should be stopped
-		self._end_capture_time = time.time()
-		fps = self._update_count / (self._end_capture_time - self._start_capture_time)
-		print('Camera capture fps: ' + str(fps))
+		self.stopped = True
+		self._camThread.join()
 		self.c.stopCapture()
 		self.c.disconnect()
 		print("Camera acquisition stopped")
 		time_start = time.time()
+
+
+#Run PTCamera as main in order to test camera. This means running PTCamera directly
+#from the command line; else, main will not run
+#usage: user:~/[your path here]$ python3 PTCamera.py
+def main():
+	vs = PTCamera().start()
+	running = True
+	time_start = time.time()
+	print('ran main')
+	time.sleep(2)
+
+	while running:
+		current_time = time.time()
+		frame = vs.read()
+		time.sleep(.02)
+		cv2.imshow('', frame)
+		if current_time - time_start > 10:
+			running = False
+			vs.stop()
+		cv2.waitKey(1)
+
+if __name__ == '__main__':
+	main()

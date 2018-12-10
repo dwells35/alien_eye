@@ -96,8 +96,10 @@ def start_tracker(tracker, frame, startX, startY, endX, endY):
 #       SIGTERM signal from the CPU. The stop event terminates the thread's execution gracefully
 #This function manages both the detector (neural net) and the tracker.
 def run_machine_vision(q, sub_pipe_end, video_dims):
-    # load our serialized model from disk
-    vs = PTCamera(resolution = video_dims).start()
+    #Threaded application -- Use PTCamera_Threaded module
+    #vs = PTCamera(resolution = video_dims).start()
+    #Non-threaded application
+    vs = PTCamera(resolution = video_dims)
     time.sleep(2)
     print("[INFO] loading model...")
     net = Deep_Detector('deploy.prototxt.txt','res10_300x300_ssd_iter_140000.caffemodel', refresh_rate = 5, confidence = .4)
@@ -339,7 +341,7 @@ def initialize_globals():
     global ball_in_hole; ball_in_hole = False
     #initialize important points of reference
     global HOLE; HOLE = (int((output_width -  eye_width)/2),
-                 int(output_height - eye_height))
+                 int(.75 * (output_height - eye_height)))
     global CENTER; CENTER = (int((output_width -  eye_width)/2),
                  int((output_height - eye_height)/2))
     #set desired framerate
