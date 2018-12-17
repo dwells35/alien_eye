@@ -18,8 +18,6 @@ import multiprocessing
 import signal
 from Idler import Idler
 
-
-
 '''
 ####################
    MACHINE VISION
@@ -69,8 +67,6 @@ def run_detector(net, frame, tracker, q):
     return tracking_face
 
 #Gets center point of updated bouning box from tracker; puts this in the queue for animation
-
-#NOTE: put() and get() from the queue has built in blocking calls; no additional locks necessary
 def run_tracker(tracker, frame, q):
     tracked_center_raw = tracker.update_position(frame)
     tracked_center_raw = (tracked_center_raw.x, tracked_center_raw.y)
@@ -90,16 +86,22 @@ def start_tracker(tracker, frame, startX, startY, endX, endY):
 
 #This function runs the machine vision portion of the eye. 
 #params:
-#   vs: Video Stream is the camera stream. Reading from the camera is I/O gating.
+#   q: Queue in which points are placed from the detector/tracker
+#   sub_pipe_end: Macine vision subprocess's end of the pipe that lets the process communicate
+#       with the main process
+#   video_dims: Dimensions of requested input video
 #   
 #This function manages both the detector (neural net) and the tracker.
 def run_machine_vision(q, sub_pipe_end, video_dims):
     #Threaded application -- Use PTCamera_Threaded module
     #vs = PTCamera(resolution = video_dims).start()
+
     #Non-threaded application
     vs = PTCamera(resolution = video_dims)
+    #Let the camera warm up and set configuration
     time.sleep(2)
     print("[INFO] loading model...")
+    #create an insance of the detector
     net = Deep_Detector('deploy.prototxt.txt','res10_300x300_ssd_iter_140000.caffemodel', refresh_rate = 5, confidence = .4)
 
     #initialize a tracker
@@ -118,6 +120,7 @@ def run_machine_vision(q, sub_pipe_end, video_dims):
         if sub_pipe_end.poll():
             running = sub_pipe_end.recv()
         current_time = time.time()
+        #Reading from the camera is I/O gating.
         frame = vs.read()
         frame = imutils.resize(frame, width=input_video_width)
 
@@ -135,6 +138,10 @@ def run_machine_vision(q, sub_pipe_end, video_dims):
             else:
                 tracking_face = False 
 
+        #Wait two milliseconds before looping again. OpenCV will freeze if this number
+        #is too low or the waitKey call is omitted. If waitKey is called with no params,
+        #the program will wait for the user to hit a key before it runs another loop; 
+        #nice for debugging. 
         cv2.waitKey(2)
         
 
@@ -194,7 +201,7 @@ def update_position(position, designation, q):
     return position, position_prev, designation
 
 def control_dilation(current_time):
-    #control the dilation frequency
+    
     if dilate_sprite.dilate_req and not blinking and not dilate_sprite.dilating:
         dilate_sprite.dilating = True
         dilate_sprite.dilate_clock = current_time - 1

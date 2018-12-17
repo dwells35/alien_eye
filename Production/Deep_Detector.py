@@ -2,28 +2,42 @@ import cv2
 import numpy as np
 
 class Deep_Detector:
-    """This class sets up a detector based on a convolutional nerual network in the OpenCV DNN module"""
+    """This class sets up a detector based on a convolutional nerual network in the OpenCV DNN module
+    
+    Attribues
+    ---------
+    _prototxt : .txt file
+        deploys the model
+    _caffe_model : .caffemodel file
+        points to the image database for the network
+    _confidence : float, default = .5
+        minimum confidence threshold required for the model to classify
+        a detected face as a "face".
+    _refresh_rate : float, default = 1
+        frequency (in seconds) of the detector running (assuming tracker is running in the interem)
 
-    def __init__(self, prototxt, caffe_model, confidence = .5, refresh_rate = 1, glance_style = 'smooth'):
+    Methods
+    --------
+    get_detections(frame)
+        Returns an array of all detected faces in an inpute image (frame)
+
+    get_detection_inds(detections)
+        Returns a list of indices of the detected faces array for detections that
+        meet or exceed the confidence threshold
+
+    detection_box(detections, ind)
+        Returns a bounding box of the detection chosen by indexing the detection array with the "ind"
+        parameter
+
+    """
+
+    def __init__(self, prototxt, caffe_model, confidence = .5, refresh_rate = 1):
         """Creates a new detector with options to adjusts the confidence of a detected face, refresh rate of the detector (in seconds), and glance style (smooth or jerky)"""
         self._caffe_model = caffe_model
         self._prototxt = prototxt
         self._confidence = confidence
         self._refresh_rate = refresh_rate
-        self._glance_style = glance_style
         self._net = cv2.dnn.readNetFromCaffe(self._prototxt, self._caffe_model)
-
-    def get_refresh_rate(self):
-        """Return the refresh rate in seconds for the detector"""
-        return self._refresh_rate
-
-    def get_glance_style(self):
-        """Return the glance style as a string for the detector"""
-        return self._glance_style
-
-    def get_confidence(self):
-        """Return the confidence threshold for the detector to classify a face"""
-        return self._confidence
 
     def get_detections(self, frame):
         """Return a list of integers that represent indeces in an array of detections"""
