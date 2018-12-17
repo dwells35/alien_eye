@@ -2,19 +2,8 @@ import cv2
 import numpy as np
 
 class Deep_Detector:
-    """This class sets up a detector based on a convolutional nerual network in the OpenCV DNN module
-    
-    Attribues
-    ---------
-    _prototxt : .txt file
-        deploys the model
-    _caffe_model : .caffemodel file
-        points to the image database for the network
-    _confidence : float, default = .5
-        minimum confidence threshold required for the model to classify
-        a detected face as a "face".
-    _refresh_rate : float, default = 1
-        frequency (in seconds) of the detector running (assuming tracker is running in the interem)
+    """
+    This class sets up a detector based on a convolutional nerual network in the OpenCV DNN module
 
     Methods
     --------
@@ -28,19 +17,60 @@ class Deep_Detector:
     detection_box(detections, ind)
         Returns a bounding box of the detection chosen by indexing the detection array with the "ind"
         parameter
-
     """
 
     def __init__(self, prototxt, caffe_model, confidence = .5, refresh_rate = 1):
-        """Creates a new detector with options to adjusts the confidence of a detected face, refresh rate of the detector (in seconds), and glance style (smooth or jerky)"""
+        """
+        Creates a new detector with options to adjusts the confidence of a detected face
+        and refresh rate of the detector (in seconds)
+
+        Attributes
+        ----------
+        _prototxt : .txt file
+            deploys the model
+
+        _caffe_model : .caffemodel file
+            points to the image database for the network
+
+        _confidence : float, default = .5
+            minimum confidence threshold required for the model to classify
+            a detected face as a "face".
+            
+        _refresh_rate : float, default = 1
+            frequency (in seconds) of the detector running (assuming tracker is running in the interem)
+        """
+
         self._caffe_model = caffe_model
         self._prototxt = prototxt
         self._confidence = confidence
         self._refresh_rate = refresh_rate
         self._net = cv2.dnn.readNetFromCaffe(self._prototxt, self._caffe_model)
 
+
     def get_detections(self, frame):
-        """Return a list of integers that represent indeces in an array of detections"""
+        """
+        Return a 4D array of detections
+
+        Attributes
+        ----------
+        frame: numpy ndarray
+            frame retrieved from camera as a numpy array
+
+        Notes
+        -----
+        How to read the detections array:
+        # = no idea what this detection index corresponds to
+            (have to read model source code for this info)
+
+            Detections array format:
+            [#, #, i, k]
+
+            i: index of detected face; each 'i' is a face
+            k: can range from 1-7
+                1: object classification as a string (not used in this application)
+                2: confidence
+                3-7: bounding box coordinates
+        """
 
         # grab the frame dimensions and convert it to a blob
         (h, w) = frame.shape[:2]
@@ -55,6 +85,16 @@ class Deep_Detector:
         return detections
 
     def get_detection_inds(self, detections):
+        """
+        Return a list of indices corresponding to faces in the detections array
+        that meet or exceed the instance confidence threshold
+
+        Attributes
+        ----------
+        detections: numpy ndarray
+            4D array of detected faces
+        """
+
         #initialize index list
         inds = []
 
@@ -71,6 +111,8 @@ class Deep_Detector:
         return inds
 
     def detection_box(self, detections, ind):
+        """Return a bounding box for the detected face"""
+
         # compute the (x, y)-coordinates of the bounding box for the
         # object
         box = detections[0, 0, ind, 3:7] * np.array([self._w, self._h, self._w, self._h])
