@@ -26,8 +26,6 @@ class Dilate_Sprite(pygame.sprite.Sprite):
 
     rect: pygame rectagle
         rectangular bounding box to contain the image
-        NOTE: this is what I saw in examples; not sure of its exact
-        purpose
 
     dilate_req: boolean
         Flag indicating whether or not main control is requesting dilation to occur
@@ -47,8 +45,6 @@ class Dilate_Sprite(pygame.sprite.Sprite):
 
     group_dilate: pygame Sprite Group
         group set up to hold dilation information
-        NOTE: this is what I saw in examples; not sure of its exact
-        purpose
 
     dilate_clock: float
         Timer used to reference when updating the dilation animation

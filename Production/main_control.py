@@ -233,7 +233,7 @@ def control_blinking(current_time):
             blink_sprite.blink_clock = current_time
             blink_sprite.group_blink.update()
         blink_sprite.group_blink.draw(out_display)
-        if blink_sprite.index == 17:
+        if blink_sprite.index == blink_sprite.MAX_INDEX:
             blinking = False
 
 def check_ball_in_hole(smoothed_position, events):
@@ -279,7 +279,7 @@ def handle_ball_in_hole(current_time, sequencer_info, eye_im_show):
     return (smoothed_position, i, increasing)
 
 def check_idle(position, position_prev, current_time):
-    #check to see if the coordinate received from the machine vision pipeline is within a 3x3 bounding box of the previous coordinate
+    #check to see if the coordinate received from the machine vision pipeline is within a 1x1 bounding box of the previous coordinate
     if abs(position[0] - position_prev[0]) < 1 and abs(position[1] - position_prev[1]) < 1 and not ball_in_hole:
         idle_time = current_time - idler.get_idle_watch_start()
         if idle_time > idler.get_idle_time_trigger() and not idler.is_running_idle():
