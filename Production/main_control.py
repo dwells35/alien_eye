@@ -1,5 +1,3 @@
-
-import display_utils as du
 from imutils.video import VideoStream
 from imutils.video import FileVideoStream
 from PTCamera import PTCamera
