@@ -158,6 +158,46 @@ def run_machine_vision(q, sub_pipe_end, video_dims):
      ANIMATION
 ####################
 '''
+def smooth_position(pos, smoothed, alpha=1/8):
+    """
+    Return 'smoothed' point based on previous points
+
+    NOTE:
+    Exponential smoothing (usually fastest when alpha=2^-N):
+    s(0) = x(0)
+    x(t) = alpha*x(t) + (1-alpha)*s(t)
+    """
+    x, y = pos
+    x_s, y_s = smoothed
+    return (alpha*x + (1-alpha)*x_s, alpha*y + (1-alpha)*y_s)
+
+def control_ouput_region(position):
+    """
+    Map corner point of eye image output to a visible region of the display
+    if the output exceeds the display bounds
+
+    Parameters
+    ----------
+    position: tuple of ints
+        Position of the eye after it has been mapped to the corner of
+        the eye output image. 
+    """
+
+    x = smoothed_position[0]
+    y = smoothed_position[1]
+
+    if x < 0:
+        smoothed_position[0] = 0
+    elif x > (output_width - eye_width):
+        smoothed_position[0] = output_width - eye_width
+
+    if y < 0:
+        smoothed_position[1] = 0
+    elif y > (output_height - eye_height):
+        smoothed_position = output_height - eye_height
+
+    return smoothed_position
+
 def scale_point_to_display(center_point_raw, flip_horizontal = False):
     x = center_point_raw[0]
     y = center_point_raw[1]
@@ -187,6 +227,9 @@ def update_position(position, designation, q):
         center_position, designation = q.get()
         scaled_point = scale_point_to_display(center_position, flip_horizontal = True)
         position = map_center_to_corner(scaled_point)
+        position = control_ouput_region(position)
+        #Send a blink request if a face is detected outside of a 5x5 bounding box
+        #where the tracked center was
         if designation - designation_prev == -1 \
         and not dilate_sprite.dilate_req \
         and abs(position[0] - position_prev[0]) > 5 \
@@ -259,7 +302,7 @@ def handle_ball_in_hole(current_time, sequencer_info, eye_im_show):
     #Control behavior when ball is hit into hole
     smoothed_position, i, increasing = sequencer_info
 
-    smoothed_position = du.avg_center(HOLE, smoothed_position, 1/4)
+    smoothed_position = smooth_position(HOLE, smoothed_position, 1/4)
     
     if increasing and i <= SCHLERA_RED_MAX:
         i += 2
@@ -296,7 +339,7 @@ def handle_idle(current_time, smoothed_position, eye_im_show):
     return smoothed_position
 
 def run_main_animation(position, smoothed_position, eye_im_show):
-    smoothed_position = du.avg_center(position, smoothed_position, 1/10)
+    smoothed_position = smooth_position(position, smoothed_position, 1/10)
     out_display.fill((0,0,0))
     out_display.blit(eye_im_show, smoothed_position)
     return smoothed_position
