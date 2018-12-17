@@ -282,12 +282,12 @@ def check_idle(position, position_prev, current_time):
     #check to see if the coordinate received from the machine vision pipeline is within a 3x3 bounding box of the previous coordinate
     if abs(position[0] - position_prev[0]) < 1 and abs(position[1] - position_prev[1]) < 1 and not ball_in_hole:
         idle_time = current_time - idler.get_idle_watch_start()
-        if idle_time > idler.get_idle_time_trigger() and not idler.is_idle():
+        if idle_time > idler.get_idle_time_trigger() and not idler.is_running_idle():
             idler.begin_idle()
             
     else:
         idler.set_idle_watch_start(current_time)
-        idler.set_idle(False)
+        idler.set_running_idle(False)
 
 def handle_idle(current_time, smoothed_position, eye_im_show):
     smoothed_position = idler.run_idle(current_time, smoothed_position)
@@ -430,11 +430,11 @@ def main():
                 sequence_info = handle_ball_in_hole(current_time, sequence_info, eye_im_show)
                 smoothed_position = sequence_info[0]
             #handle main animation
-            if not ball_in_hole and not idler.is_idle():
+            if not ball_in_hole and not idler.is_running_idle():
                 smoothed_position = run_main_animation(position, smoothed_position, eye_im_show)
             #handle idle behavior
             check_idle(position, position_prev, current_time)
-            if idler.is_idle():
+            if idler.is_running_idle():
                 smoothed_position = handle_idle(current_time, smoothed_position, eye_im_show)
 
             control_blinking(current_time)

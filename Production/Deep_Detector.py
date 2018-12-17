@@ -5,8 +5,23 @@ class Deep_Detector:
     """
     This class sets up a detector based on a convolutional nerual network in the OpenCV DNN module
 
+    Attributes
+    ----------
+    _prototxt : .txt file
+        deploys the model
+
+    _caffe_model : .caffemodel file
+        points to the image database for the network
+
+    _confidence : float, default = .5
+        minimum confidence threshold required for the model to classify
+        a detected face as a "face".
+        
+    _refresh_rate : float, default = 1
+        frequency (in seconds) of the detector running (assuming tracker is running in the interem)
+
     Methods
-    --------
+    -------
     get_detections(frame)
         Returns an array of all detected faces in an inpute image (frame)
 
@@ -26,17 +41,17 @@ class Deep_Detector:
 
         Attributes
         ----------
-        _prototxt : .txt file
+        prototxt : .txt file
             deploys the model
 
-        _caffe_model : .caffemodel file
+        caffe_model : .caffemodel file
             points to the image database for the network
 
-        _confidence : float, default = .5
+        confidence : float, default = .5
             minimum confidence threshold required for the model to classify
             a detected face as a "face".
             
-        _refresh_rate : float, default = 1
+        refresh_rate : float, default = 1
             frequency (in seconds) of the detector running (assuming tracker is running in the interem)
         """
 
@@ -51,7 +66,7 @@ class Deep_Detector:
         """
         Return a 4D array of detections
 
-        Attributes
+        Parameters
         ----------
         frame: numpy ndarray
             frame retrieved from camera as a numpy array
@@ -89,7 +104,7 @@ class Deep_Detector:
         Return a list of indices corresponding to faces in the detections array
         that meet or exceed the instance confidence threshold
 
-        Attributes
+        Parameters
         ----------
         detections: numpy ndarray
             4D array of detected faces
@@ -111,7 +126,18 @@ class Deep_Detector:
         return inds
 
     def detection_box(self, detections, ind):
-        """Return a bounding box for the detected face"""
+        """
+        Return a bounding box for the detected face
+
+        Parameters
+        ----------
+        detections: numpy ndarray
+            4D array of detected faces
+
+        ind: int
+            index of face randomly picked from valid faces; index of face
+            for which to retrieve bounding box
+        """
 
         # compute the (x, y)-coordinates of the bounding box for the
         # object
