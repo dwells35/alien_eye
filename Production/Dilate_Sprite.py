@@ -104,6 +104,14 @@ class Dilate_Sprite(pygame.sprite.Sprite):
         self.dilate_refresh_time = (1 / self.DILATE_FRAMERATE)
 
     def dilate(self, current_time):
+        """
+        Control dilation behavior
+
+        Parameters
+        ----------
+        current_time: float
+            Time since the epoch; used to get current time of the main animation loop
+        """
         if current_time - self.dilate_clock > self.dilate_refresh_time:
             self.dilate_clock = current_time
             if self.index <= len(self.images)/2:
@@ -128,6 +136,7 @@ class Dilate_Sprite(pygame.sprite.Sprite):
         return eye_im_show
 
     def update(self):
+        """Increment the index of the image list"""
         self.index += 1
         if self.index >= len(self.images):
             self.index = 0
