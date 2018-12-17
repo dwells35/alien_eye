@@ -14,12 +14,10 @@ import imutils
 import cv2
 import dlib
 import pygame
-from queue import Queue
-import threading
 import multiprocessing
 import signal
 from Idler import Idler
-import sys
+
 
 
 '''
@@ -93,8 +91,7 @@ def start_tracker(tracker, frame, startX, startY, endX, endY):
 #This function runs the machine vision portion of the eye. 
 #params:
 #   vs: Video Stream is the camera stream. Reading from the camera is I/O gating.
-#   stop_event: stop event is triggered when the program either quits as expected, recieve as SIGINT (CTRL + C) signal, or
-#       SIGTERM signal from the CPU. The stop event terminates the thread's execution gracefully
+#   
 #This function manages both the detector (neural net) and the tracker.
 def run_machine_vision(q, sub_pipe_end, video_dims):
     #Threaded application -- Use PTCamera_Threaded module
@@ -356,8 +353,6 @@ def initialize_globals():
     global idler; idler = Idler(CENTER, (output_width, output_height), (eye_width, eye_height))
     #initialize maximum schelra RED color when the ball is hit into the hole
     global SCHLERA_RED_MAX; SCHLERA_RED_MAX = 50
-    #Setting up a stop event in order to make sure the threads finish gracefully when the program is stopped
-    global stop_event; stop_event = threading.Event()
     global ball_in_hole_time_start
 
 def setup():
@@ -445,23 +440,19 @@ def main():
             for event in events:
                 if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                     running = False
-                    stop_event.set()
                     main_pipe_end.send(False)
-                    print("set_stop_event")
+                    print("ending Subprocess")
 
             '''
             if profiling_watch_end - start_fps_timer > 30:
                 running = False
-                stop_event.set()
-                print("set_stop_event")
+                print("edning Subprocess")
             '''
             profiling_watch_end = time.time()
             #count += 1
     except Service_Exit:
-        stop_event.set()
         main_pipe_end.send(False)
     except KeyboardInterrupt:
-        stop_event.set()
         main_pipe_end.send(False)
 
     finally:
