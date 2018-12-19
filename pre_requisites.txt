@@ -1,0 +1,9 @@
+cmake==3.12.0
+Cython==0.29
+dlib==19.16.0
+imutils==0.5.1
+numpy==1.15.2
+opencv-contrib-python==3.4.3.18
+pygame==1.9.4
+PyYAML==3.13
+
