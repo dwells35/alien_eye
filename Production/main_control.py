@@ -1,5 +1,3 @@
-
-import display_utils as du
 from imutils.video import VideoStream
 from imutils.video import FileVideoStream
 from PTCamera import PTCamera
@@ -14,13 +12,9 @@ import imutils
 import cv2
 import dlib
 import pygame
-from queue import Queue
-import threading
 import multiprocessing
 import signal
 from Idler import Idler
-import sys
-
 
 '''
 ####################
@@ -71,8 +65,6 @@ def run_detector(net, frame, tracker, q):
     return tracking_face
 
 #Gets center point of updated bouning box from tracker; puts this in the queue for animation
-
-#NOTE: put() and get() from the queue has built in blocking calls; no additional locks necessary
 def run_tracker(tracker, frame, q):
     tracked_center_raw = tracker.update_position(frame)
     tracked_center_raw = (tracked_center_raw.x, tracked_center_raw.y)
@@ -92,18 +84,23 @@ def start_tracker(tracker, frame, startX, startY, endX, endY):
 
 #This function runs the machine vision portion of the eye. 
 #params:
-#   vs: Video Stream is the camera stream. Reading from the camera is I/O gating.
-#   stop_event: stop event is triggered when the program either quits as expected, recieve as SIGINT (CTRL + C) signal, or
-#       SIGTERM signal from the CPU. The stop event terminates the thread's execution gracefully
+#   q: Queue in which points are placed from the detector/tracker
+#   sub_pipe_end: Macine vision subprocess's end of the pipe that lets the process communicate
+#       with the main process
+#   video_dims: Dimensions of requested input video
+#   
 #This function manages both the detector (neural net) and the tracker.
 def run_machine_vision(q, sub_pipe_end, video_dims):
     
     #Threaded application -- Use PTCamera_Threaded module
     #vs = PTCamera(resolution = video_dims).start()
+
     #Non-threaded application
     vs = PTCamera(resolution = video_dims)
+    #Let the camera warm up and set configuration
     time.sleep(2)
     print("[INFO] loading model...")
+    #create an insance of the detector
     net = Deep_Detector('deploy.prototxt.txt','res10_300x300_ssd_iter_140000.caffemodel', refresh_rate = 5, confidence = .4)
 
     #initialize a tracker
@@ -122,6 +119,7 @@ def run_machine_vision(q, sub_pipe_end, video_dims):
         if sub_pipe_end.poll():
             running = sub_pipe_end.recv()
         current_time = time.time()
+        #Reading from the camera is I/O gating.
         frame = vs.read()
         frame = imutils.resize(frame, width=input_video_width)
 
@@ -139,6 +137,10 @@ def run_machine_vision(q, sub_pipe_end, video_dims):
             else:
                 tracking_face = False 
 
+        #Wait two milliseconds before looping again. OpenCV will freeze if this number
+        #is too low or the waitKey call is omitted. If waitKey is called with no params,
+        #the program will wait for the user to hit a key before it runs another loop; 
+        #nice for debugging. 
         cv2.waitKey(2)
         
 
@@ -155,6 +157,46 @@ def run_machine_vision(q, sub_pipe_end, video_dims):
      ANIMATION
 ####################
 '''
+def smooth_position(pos, smoothed, alpha=1/8):
+    """
+    Return 'smoothed' point based on previous points
+
+    NOTE:
+    Exponential smoothing (usually fastest when alpha=2^-N):
+    s(0) = x(0)
+    x(t) = alpha*x(t) + (1-alpha)*s(t)
+    """
+    x, y = pos
+    x_s, y_s = smoothed
+    return (alpha*x + (1-alpha)*x_s, alpha*y + (1-alpha)*y_s)
+
+def control_ouput_region(position):
+    """
+    Map corner point of eye image output to a visible region of the display
+    if the output exceeds the display bounds
+
+    Parameters
+    ----------
+    position: tuple of ints
+        Position of the eye after it has been mapped to the corner of
+        the eye output image. 
+    """
+
+    x = smoothed_position[0]
+    y = smoothed_position[1]
+
+    if x < 0:
+        smoothed_position[0] = 0
+    elif x > (output_width - eye_width):
+        smoothed_position[0] = output_width - eye_width
+
+    if y < 0:
+        smoothed_position[1] = 0
+    elif y > (output_height - eye_height):
+        smoothed_position = output_height - eye_height
+
+    return smoothed_position
+
 def scale_point_to_display(center_point_raw, flip_horizontal = False):
     x = center_point_raw[0]
     y = center_point_raw[1]
@@ -184,6 +226,9 @@ def update_position(position, designation, q):
         center_position, designation = q.get()
         scaled_point = scale_point_to_display(center_position, flip_horizontal = True)
         position = map_center_to_corner(scaled_point)
+        position = control_ouput_region(position)
+        #Send a blink request if a face is detected outside of a 5x5 bounding box
+        #where the tracked center was
         if designation - designation_prev == -1 \
         and not dilate_sprite.dilate_req \
         and abs(position[0] - position_prev[0]) > 5 \
@@ -198,7 +243,7 @@ def update_position(position, designation, q):
     return position, position_prev, designation
 
 def control_dilation(current_time):
-    #control the dilation frequency
+    
     if dilate_sprite.dilate_req and not blinking and not dilate_sprite.dilating:
         dilate_sprite.dilating = True
         dilate_sprite.dilate_clock = current_time - 1
@@ -230,7 +275,7 @@ def control_blinking(current_time):
             blink_sprite.blink_clock = current_time
             blink_sprite.group_blink.update()
         blink_sprite.group_blink.draw(out_display)
-        if blink_sprite.index == 17:
+        if blink_sprite.index == blink_sprite.MAX_INDEX:
             blinking = False
 
 def check_ball_in_hole(smoothed_position, events):
@@ -256,7 +301,7 @@ def handle_ball_in_hole(current_time, sequencer_info, eye_im_show):
     #Control behavior when ball is hit into hole
     smoothed_position, i, increasing = sequencer_info
 
-    smoothed_position = du.avg_center(HOLE, smoothed_position, 1/4)
+    smoothed_position = smooth_position(HOLE, smoothed_position, 1/4)
     
     if increasing and i <= SCHLERA_RED_MAX:
         i += 2
@@ -276,15 +321,15 @@ def handle_ball_in_hole(current_time, sequencer_info, eye_im_show):
     return (smoothed_position, i, increasing)
 
 def check_idle(position, position_prev, current_time):
-    #check to see if the coordinate received from the machine vision pipeline is within a 3x3 bounding box of the previous coordinate
+    #check to see if the coordinate received from the machine vision pipeline is within a 1x1 bounding box of the previous coordinate
     if abs(position[0] - position_prev[0]) < 1 and abs(position[1] - position_prev[1]) < 1 and not ball_in_hole:
         idle_time = current_time - idler.get_idle_watch_start()
-        if idle_time > idler.get_idle_time_trigger() and not idler.is_idle():
+        if idle_time > idler.get_idle_time_trigger() and not idler.is_running_idle():
             idler.begin_idle()
             
     else:
         idler.set_idle_watch_start(current_time)
-        idler.set_idle(False)
+        idler.set_running_idle(False)
 
 def handle_idle(current_time, smoothed_position, eye_im_show):
     smoothed_position = idler.run_idle(current_time, smoothed_position)
@@ -293,7 +338,7 @@ def handle_idle(current_time, smoothed_position, eye_im_show):
     return smoothed_position
 
 def run_main_animation(position, smoothed_position, eye_im_show):
-    smoothed_position = du.avg_center(position, smoothed_position, 1/10)
+    smoothed_position = smooth_position(position, smoothed_position, 1/10)
     out_display.fill((0,0,0))
     out_display.blit(eye_im_show, smoothed_position)
     return smoothed_position
@@ -357,8 +402,6 @@ def initialize_globals():
     global idler; idler = Idler(CENTER, (output_width, output_height), (eye_width, eye_height))
     #initialize maximum schelra RED color when the ball is hit into the hole
     global SCHLERA_RED_MAX; SCHLERA_RED_MAX = 50
-    #Setting up a stop event in order to make sure the threads finish gracefully when the program is stopped
-    global stop_event; stop_event = threading.Event()
     global ball_in_hole_time_start
 
 def setup():
@@ -429,11 +472,11 @@ def main():
                 sequence_info = handle_ball_in_hole(current_time, sequence_info, eye_im_show)
                 smoothed_position = sequence_info[0]
             #handle main animation
-            if not ball_in_hole and not idler.is_idle():
+            if not ball_in_hole and not idler.is_running_idle():
                 smoothed_position = run_main_animation(position, smoothed_position, eye_im_show)
             #handle idle behavior
             check_idle(position, position_prev, current_time)
-            if idler.is_idle():
+            if idler.is_running_idle():
                 smoothed_position = handle_idle(current_time, smoothed_position, eye_im_show)
 
             control_blinking(current_time)
@@ -446,23 +489,19 @@ def main():
             for event in events:
                 if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                     running = False
-                    stop_event.set()
                     main_pipe_end.send(False)
-                    print("set_stop_event")
+                    print("ending Subprocess")
 
             '''
             if profiling_watch_end - start_fps_timer > 30:
                 running = False
-                stop_event.set()
-                print("set_stop_event")
+                print("edning Subprocess")
             '''
             profiling_watch_end = time.time()
             #count += 1
     except Service_Exit:
-        stop_event.set()
         main_pipe_end.send(False)
     except KeyboardInterrupt:
-        stop_event.set()
         main_pipe_end.send(False)
 
     finally:
