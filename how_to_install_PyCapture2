@@ -2,7 +2,7 @@ How to install the correct version of PyCapture2
 
 Pre-requisites: A virtual environment must already have been created. See "how_to_create_a_virtual_environment" for information on that step.
 
-1. Locate the PyCapture2 directory in the git repo or download a version of PyCapture from PTGrey's website (it will be followed by a version number; e.g. PyCapture2-2.13.31)
+1. Locate the PyCapture2 directory in the git repo or download a version of PyCapture from PTGrey's website (it will be followed by a version number; e.g. PyCapture2-2.13.31). The version provided in the git repo is for Ubuntu 18.04 and will not work with other verisons of Ubuntu.
 
 2. Ensure the the version of PyCapture you have downloaded matches the version of FlyCapture2 that you have.
 
