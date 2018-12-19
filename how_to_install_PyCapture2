@@ -1,0 +1,23 @@
+How to install the correct version of PyCapture2
+
+Pre-requisites: A virtual environment must already have been created. See "how_to_create_a_virtual_environment" for information on that step.
+
+1. Locate the PyCapture2 directory in the git repo or download a version of PyCapture from PTGrey's website (it will be followed by a version number; e.g. PyCapture2-2.13.31)
+
+2. Ensure the the version of PyCapture you have downloaded matches the version of FlyCapture2 that you have.
+
+3. If FlyCapture2 is not yet installed, follow instructions provided by PTGrey for how to install it onto your system
+
+4. Using the bash terminal, navigate to your PyCatpture2 directory and see that you have the "setup.py" file
+
+5. Run the setup.py file USING THE VERSION OF PYTHON IN THE VIRTUAL ENVIRONMENT
+
+	5a. From bash, run the following command (with your actual path):
+		[your path]/python3 setup.py install
+
+	5b. Your path will probably look like this if you setup your virtual environment in accordance with the other tutorial:
+		~/.virtualenvs/[name of your virtual environment]/bin
+	
+	5c. Make sure that you have installed PyCapture into the virtual environment by navigating to the site-packages for the virtual environment and seeing that it is there (This will be in ~/.virtualenvs/[name of your virtual environment]/lib/python3.6/site-packages/
+
+	5d. PyCapture2 will most likely show up as version 0.0.0, and I'm not sure why. As long as you use the correct setup.py file, it will work.

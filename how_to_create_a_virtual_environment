@@ -1,0 +1,10 @@
+My favorite tutorial for creating a virtual environment is the following:
+https://www.pyimagesearch.com/2017/09/25/configuring-ubuntu-for-deep-learning-with-python/
+
+It's step 2 of a larger tutorial, so you'll have to scroll down to find it.
+
+NOTE: When you have installed virtualenv and virtualenvwrapper and you are ready to actually create the virtual environment (with mkvirtualenv), make sure you do so with python3 AND using the requirements.txt file provided in the git repo. The command should look like the following:
+
+$ mkvirtualenv alien_eye -p python3 -r requirements.txt
+
+This will create the environment with all necessary packages already installed (except for PyCatpure2 and FlyCapture2). 
