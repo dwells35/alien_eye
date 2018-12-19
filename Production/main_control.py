@@ -65,7 +65,7 @@ def run_detector(net, frame, tracker, q):
                 cv2.rectangle(frame, (startX, startY), (endX, endY),
                 (0, 0, 255), 2)
                 cv2.imshow('main frame', frame)
-    else:
+    elif DEBUG:
         cv2.imshow('main frame', frame)
 
     return tracking_face
@@ -97,6 +97,7 @@ def start_tracker(tracker, frame, startX, startY, endX, endY):
 #       SIGTERM signal from the CPU. The stop event terminates the thread's execution gracefully
 #This function manages both the detector (neural net) and the tracker.
 def run_machine_vision(q, sub_pipe_end, video_dims):
+    
     #Threaded application -- Use PTCamera_Threaded module
     #vs = PTCamera(resolution = video_dims).start()
     #Non-threaded application
@@ -309,7 +310,7 @@ def service_shutdown(signum, frame):
 def initialize_globals():
      
     #Use this to toggle optional features useful for debugging. Set to False for production.
-    global DEBUG; DEBUG = True
+    global DEBUG; DEBUG = False
     #set factor to make eye look at a person. This factor helps map a coordinate to an artificial bounding box
     #in which the eye can move so that its range of motion will align with the camera's field of view
     camera_horiz_angle_of_view = 90
