@@ -1,19 +1,20 @@
-from imutils.video import VideoStream
-from imutils.video import FileVideoStream
+#System
+import time
+import random
+import multiprocessing
+import signal
+#3rd Party
+import imutils
+import cv2
+import dlib
+import pygame
+#Local
 from PTCamera import PTCamera
 from Deep_Detector import Deep_Detector
 from Tracker import Tracker
 from Blink_Sprite import Blink_Sprite
 from Dilate_Sprite import Dilate_Sprite
 from Service_Exit import Service_Exit
-import time
-import random
-import imutils
-import cv2
-import dlib
-import pygame
-import multiprocessing
-import signal
 from Idler import Idler
 
 '''
@@ -23,8 +24,11 @@ from Idler import Idler
 '''
 
 def get_detection_data(indices, net, detections):
-    #pick a random index from that list of indices (this way, if there are multiple people,
-    #the alien won't get fixated on just one person)
+    """
+    Pick a random index from that list of indices (this way, if there are multiple people,
+    the alien won't get fixated on just one person)
+    """
+
     num = random.randint(0, len(indices) - 1)
     ind_of_interest = indices[num]
     #get bounding box of detected face
@@ -35,12 +39,14 @@ def get_detection_data(indices, net, detections):
 
     return detected_center_raw, bounding_box
 
-#Picks a face from a list of detected faces. If a face is found, a bounding box
-#for the face is returned and the center of the box is given to the queue for animation
-#If none are found, tracking_face is False, and the detector tries again on the next frame.
-
-#NOTE: put() and get() from the queue has built in blocking calls; no additional locks necessary
 def run_detector(net, frame, tracker, q):
+    """
+    Picks a face from a list of detected faces. If a face is found, a bounding box
+    for the face is returned and the center of the box is given to the queue for
+    animation. If none are found, tracking_face is False, and the detector tries
+    again on the next frame.
+    """
+
     detections = net.get_detections(frame)
     indices = net.get_detection_inds(detections)
     tracking_face = False
@@ -64,8 +70,24 @@ def run_detector(net, frame, tracker, q):
 
     return tracking_face
 
-#Gets center point of updated bouning box from tracker; puts this in the queue for animation
 def run_tracker(tracker, frame, q):
+    """
+    Get center point of updated bouning box from tracker;
+    put this in the queue for animation
+
+    Parameters
+    ----------
+    tracker: dlib Correlation Tracker
+        Tracker object that processes the image
+
+    frame: numpy ndarray
+        most recent image from camera
+
+    q: Multiprocessing Joinable Queue
+        Queue that holds tracked/detected points
+
+    """
+
     tracked_center_raw = tracker.update_position(frame)
     tracked_center_raw = (tracked_center_raw.x, tracked_center_raw.y)
     if not q.full():
@@ -73,8 +95,8 @@ def run_tracker(tracker, frame, q):
     if DEBUG:
         cv2.imshow('main frame', frame)
 
-#Creates a tracker based on the bounding box returned from the detector
 def start_tracker(tracker, frame, startX, startY, endX, endY):
+    """Create a tracker based on the bounding box returned from the detector"""
     tracker.get_tracker().start_track(frame, 
                         dlib.rectangle( startX,
                                         startY,
@@ -82,21 +104,36 @@ def start_tracker(tracker, frame, startX, startY, endX, endY):
                                         endY))
     return tracker
 
-#This function runs the machine vision portion of the eye. 
-#params:
-#   q: Queue in which points are placed from the detector/tracker
-#   sub_pipe_end: Macine vision subprocess's end of the pipe that lets the process communicate
-#       with the main process
-#   video_dims: Dimensions of requested input video
-#   
-#This function manages both the detector (neural net) and the tracker.
 def run_machine_vision(q, sub_pipe_end, video_dims):
+    """
+    Manage both the detector (neural net) and the tracker in a
+    seperate process than the animation.
     
-    #Threaded application -- Use PTCamera_Threaded module
+    Parameters
+    ----------
+    q: Queue
+        in which points are placed from the detector/tracker
+
+    sub_pipe_end: Pipe
+        Macine vision subprocess's end of the pipe that lets the process communicate
+        with the main process
+
+    video_dims: tuple of ints 
+        Dimensions of requested input video
+    """
+
+    #use imutils.FileVideoStream to read video from a file for testing
+    #vs = imutils.FileVideoStream('no_vis_light.mp4').start()
+
+    #use imutils.VideoStream to read video from a webcam for testing
+    #vs = imutils.VideoStream(src=0, resolution = video_dims).start()
+
+    #Threaded application of PTGrey Camera-- Use PTCamera_Threaded
     #vs = PTCamera(resolution = video_dims).start()
 
-    #Non-threaded application
+    #Non-threaded application of PTGrey Camera
     vs = PTCamera(resolution = video_dims)
+
     #Let the camera warm up and set configuration
     time.sleep(2)
     print("[INFO] loading model...")
@@ -139,8 +176,8 @@ def run_machine_vision(q, sub_pipe_end, video_dims):
 
         #Wait two milliseconds before looping again. OpenCV will freeze if this number
         #is too low or the waitKey call is omitted. If waitKey is called with no params,
-        #the program will wait for the user to hit a key before it runs another loop; 
-        #nice for debugging. 
+        #the program will wait indefinitely for the user to hit a key before it
+        #runs another loop; nice for debugging. 
         cv2.waitKey(2)
         
 
@@ -419,11 +456,9 @@ def setup():
     
     video_dims = (input_video_width, input_video_height)
     
-    #use FileVideoStream to read video from a file for testing
-    #vs = FileVideoStream('no_vis_light.mp4').start()
     #initialize Queue to pass data from detector thread to main thread
     sub_pipe_end, main_pipe_end = multiprocessing.Pipe(duplex = False)
-    q = multiprocessing.JoinableQueue(maxsize=6)
+    q = multiprocessing.JoinableQueue(maxsize=1)
     #Start running the detector and the tracker on seperate threads so that they won't bog down
     #the output display speed
     machine_vision_subprocess = multiprocessing.Process(target = run_machine_vision, args=(q, sub_pipe_end, video_dims))
