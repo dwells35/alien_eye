@@ -62,6 +62,17 @@
 * Run the setup.py file USING THE VERSION OF PYTHON IN THE VIRTUAL ENVIRONMENT
   * From bash, run the following command (Your path will probably look like this if you setup your virtual environment in accordance with the other tutorial):  
 **~/.virtualenvs/alien_eye/bin/python3 setup.py install**
-  * Make sure that you have installed PyCapture into the virtual environment by navigating to the site-packages for the virtual environment and seeing that it is there (This will be in ~/.virtualenvs/alien_eye/lib/python3.6/site-packages/
+  * Make sure that you have installed PyCapture into the virtual environment (and all other packages necessesary) by navigating to ~/Documents and running the following command:  
+  **pip freeze > current_state.txt**
+  * Open current_state.txt and look for all of the follwing packages:  
+  **cmake==3.12.0  
+  Cython==0.29  
+  dlib==19.16.0  
+  imutils==0.5.1  
+  numpy==1.15.2  
+  opencv-contrib-python==3.4.3.18  
+  PyCapture2==0.0.0  
+  pygame==1.9.4  
+  PyYAML==3.13**  
   * PyCapture2 will most likely show up as version 0.0.0, and I'm not sure why. As long as you use the correct setup.py file, it will work.
  
