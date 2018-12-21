@@ -86,7 +86,7 @@
 
   **NOTE: The version of FlyCapture2 provided in this repo has install instructions for Ubuntu 16.04 as well, so the provided PyCapture2 API may also work with 16.04 if the correct pre-reqs are installed for FlyCapture2 16.04. I have not tried this.**  
 
-  **PRO-TIP: After installing the pre-requisites for FlyCapture2, don't forget to use the install_flycatprure.sh file to actually install it**  
+  **PRO-TIP: After installing the pre-requisites for FlyCapture2, don't forget to use the install_flycatprure.sh file to actually install FlyCapture2**  
 
   **NOTE: Flycapture can be installed from a system level; it does not need to be inside the virtual environment. In fact, I don't even think that installing it into the virtual environment makes sense since it's not a Python package, but I just figured I'd clarify that here.**
 
@@ -106,7 +106,7 @@
    ```
  
  * Open current_state.txt and look for all of the follwing packages:  
- 
+    ```
     cmake==3.12.0  
     Cython==0.29  
     dlib==19.16.0  
@@ -116,6 +116,7 @@
     PyCapture2==0.0.0  
     pygame==1.9.4  
     PyYAML==3.13  
- 
+    ```
+ * Delete current_state.txt to keep everyting clean and tidy
  * PyCapture2 will most likely show up as version 0.0.0, and I'm not sure why. As long as you use the correct setup.py file, it will work.
  * cmake and Cython are only useful if you were to compile any of these packages from source in the future (possible optimization gains from dlib and OpenCV). For this reaons, I left those in this environment.
