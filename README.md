@@ -29,7 +29,7 @@
 **sudo apt-get upgrade**  
 **sudo apt-get install git python3-pip -y**
 * Check to make sure they are installed by running the following commands:  
-**pip3 --version**
+**pip3 --version**  
 **git --version**
 * If there are version numbers, you're good
 * Navigate to Documents and clone this github repo with the following command:
