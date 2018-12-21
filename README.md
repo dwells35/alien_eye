@@ -1,4 +1,4 @@
-#How to do a re-install of the system
+# How to do a re-install of the system
 
 * Go to Settings>Dock and select "Auto-hide Dock"
 * Go to Settings>Devices>Displays and set the resolution to 1024x768 (4:3)
