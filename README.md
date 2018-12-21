@@ -24,30 +24,30 @@
 * Go to Settings>Devices>Displays and set the resolution to 1024x768 (4:3)
 * Open the Ubuntu Software app and search for "hide top bar" and install it. This will hide the top bar automatically when the animation is full screen
 * Open a terminal instance with Ctrl+Alt+T
-* Install git and pip with the following commands:
-  * sudo apt-get update  
-sudo apt-get upgrade  
-sudo apt-get install git python3-pip -y
-* Check to make sure they are installed by calling the following commands;
-  * pip3 --version
-  * git --version
+* Install git and pip with the following commands:  
+**sudo apt-get update**  
+**sudo apt-get upgrade**  
+**sudo apt-get install git python3-pip -y**
+* Check to make sure they are installed by running the following commands:  
+**pip3 --version**
+**git --version**
 * If there are version numbers, you're good
 * Navigate to Documents and clone this github repo with the following command:
   * git clone https://github.com/dwells35/alien_eye.git
 
 # How to create a virtual environment in which to work
 * Run the following command using pip:  
-sudo pip3 install virtualenv virtualenvwrapper
+**sudo pip3 install virtualenv virtualenvwrapper**
 * Now we will update our ~/.bashrc file to include the following lines at the _bottom_ of the file:  
-export WORKON_HOME=$HOME/.virtualenvs  
-export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3  
-source /usr/local/bin/virtualenvwrapper.sh  
+**export WORKON_HOME=$HOME/.virtualenvs**  
+**export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3**  
+**source /usr/local/bin/virtualenvwrapper.sh**  
 * source the .bashrc file (source ~/.bashrc from the command line) or close the terminal and start a new terminal instance
 * Go to Documents (or wherever you cloned the github repo) and cd into alien_eye
 * Next, let's create our virtual environment called "alien_eye" with the following command:  
-mkvirtualenv alien_eye -p python3 -r requirements.txt
+**mkvirtualenv alien_eye -p python3 -r requirements.txt**
 * Let's double check that our virtual environment is active by typing the followng command:  
-workon alien_eye
+**workon alien_eye**
 * If everyting is successful, "(alien_eye)" should show up before our username in the terminal
 * Exit this virtual environment at any time by calling "deactivate" from the terminal
 * Now we need to install FlyCapture2 and PyCapture2
@@ -60,7 +60,7 @@ workon alien_eye
 * Using the bash terminal, navigate to your PyCatpture2 directory and see that you have the "setup.py" file
 * Run the setup.py file USING THE VERSION OF PYTHON IN THE VIRTUAL ENVIRONMENT
   * From bash, run the following command (Your path will probably look like this if you setup your virtual environment in accordance with the other tutorial):  
-~/.virtualenvs/alien_eye/bin/python3 setup.py install
+**~/.virtualenvs/alien_eye/bin/python3 setup.py install**
   * Make sure that you have installed PyCapture into the virtual environment by navigating to the site-packages for the virtual environment and seeing that it is there (This will be in ~/.virtualenvs/alien_eye/lib/python3.6/site-packages/
   * PyCapture2 will most likely show up as version 0.0.0, and I'm not sure why. As long as you use the correct setup.py file, it will work.
  
