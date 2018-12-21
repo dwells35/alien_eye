@@ -16,7 +16,9 @@
   * Run the following command using pip:
     * sudo pip3 install virtualenv virtualenvwrapper
   * Now we will update our ~/.bashrc file to include the following lines at the _bottom_ of the file
-    * export WORKON_HOME=$HOME/.virtualenvs    export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3    source /usr/local/bin/virtualenvwrapper.sh
+    * export WORKON_HOME=$HOME/.virtualenvs  
+    export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3  
+    source /usr/local/bin/virtualenvwrapper.sh  
   * source the .bashrc file or close the terminal and start a new terminal instance
   * Go to Documents (or wherever you cloned the github repo) and cd into alien_eye
   * Next, let's create our virtual environment called "alien_eye" with the following command:
