@@ -60,10 +60,8 @@ source /usr/local/bin/virtualenvwrapper.sh
 * Using the bash terminal, navigate to your PyCatpture2 directory and see that you have the "setup.py" file
 
 * Run the setup.py file USING THE VERSION OF PYTHON IN THE VIRTUAL ENVIRONMENT
-  * From bash, run the following command (with your actual path):  
-[your path]/python3 setup.py install
-  * Your path will probably look like this if you setup your virtual environment in accordance with the other tutorial:  
-~/.virtualenvs/[name of your virtual environment]/bin
+  * From bash, run the following command (with your actual path; Your path will probably look like this if you setup your virtual environment in accordance with the other tutorial):  
+~/.virtualenvs/alien_eye/bin/python3 setup.py install
   * Make sure that you have installed PyCapture into the virtual environment by navigating to the site-packages for the virtual environment and seeing that it is there (This will be in ~/.virtualenvs/[name of your virtual environment]/lib/python3.6/site-packages/
   * PyCapture2 will most likely show up as version 0.0.0, and I'm not sure why. As long as you use the correct setup.py file, it will work.
  
