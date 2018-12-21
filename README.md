@@ -28,15 +28,17 @@
 * Open the Ubuntu Software app and search for "hide top bar" and install it. This will hide the top bar automatically when the animation is full screen
 * Open a terminal instance with Ctrl+Alt+T
 * Install git and pip with the following commands:  
-
-```sudo apt-get update  
+```
+sudo apt-get update  
 sudo apt-get upgrade  
-sudo apt-get install git python3-pip -y```
+sudo apt-get install git python3-pip -y
+```
 
 * Check to make sure they are installed by running the following commands:  
-
-  ```pip3 --version  
-git --version```
+  ```
+  pip3 --version  
+  git --version
+  ```
 
 * If there are version numbers, you're good
 * Navigate to Documents and clone this github repo with the following command:
