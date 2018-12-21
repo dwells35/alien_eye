@@ -1,6 +1,6 @@
 # How to do a re-install of the system
 * Download Ubuntu ISO file from ubuntu.com
-* Install Rufus
+* Install Rufus from https://rufus.ie/en_IE.html
 * Insert empty USB drive into computer (8gb or less USB drive is best because otherwise, it needs to be formatted to FAT32 first, though I think Rufus will automatically do that)
 * Select “ISO Image” in “Create Bootable Disk Using” option
 * Click the little disk icon beside the dropdown where you selected “ISO Image” and navigate to ISO file that you downloaded. Hit “Ok” or “Open” or whatever to select it. 
@@ -32,22 +32,22 @@ sudo apt-get install git python3-pip -y
   * pip3 --version
   * git --version
 * If there are version numbers, you're good
-* Navigate to Documents and clone my github repo with the following command:
+* Navigate to Documents and clone this github repo with the following command:
   * git clone https://github.com/dwells35/alien_eye.git
 
 # How to create a virtual environment in which to work
-* Run the following command using pip:
-* sudo pip3 install virtualenv virtualenvwrapper
-* Now we will update our ~/.bashrc file to include the following lines at the _bottom_ of the file
-* export WORKON_HOME=$HOME/.virtualenvs  
+* Run the following command using pip:  
+sudo pip3 install virtualenv virtualenvwrapper
+* Now we will update our ~/.bashrc file to include the following lines at the _bottom_ of the file:  
+export WORKON_HOME=$HOME/.virtualenvs  
 export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3  
 source /usr/local/bin/virtualenvwrapper.sh  
 * source the .bashrc file (source ~/.bashrc from the command line) or close the terminal and start a new terminal instance
 * Go to Documents (or wherever you cloned the github repo) and cd into alien_eye
-* Next, let's create our virtual environment called "alien_eye" with the following command:
-* mkvirtualenv alien_eye -p python3 -r requirements.txt
-* Let's double check that our virtual environment is active by typing the followng command;
-* workon alien_eye
+* Next, let's create our virtual environment called "alien_eye" with the following command:  
+mkvirtualenv alien_eye -p python3 -r requirements.txt
+* Let's double check that our virtual environment is active by typing the followng command:  
+workon alien_eye
 * If everyting is successful, "(alien_eye)" should show up before our username in the terminal
 * Exit this virtual environment at any time by calling "deactivate" from the terminal
 * Now we need to install FlyCapture2 and PyCapture2
@@ -56,11 +56,8 @@ source /usr/local/bin/virtualenvwrapper.sh
 
 * Locate the PyCapture2 directory in this github repo or download a version of PyCapture from PTGrey's website (it will be followed by a version number; e.g. PyCapture2-2.13.31). The version provided in this github repo is for Ubuntu 18.04 and will not work with other verisons of Ubuntu.
 * Ensure the the version of PyCapture you have downloaded matches the version of FlyCapture2 that you have.
-
 * If FlyCapture2 is not yet installed, follow instructions provided by PTGrey for how to install it onto your system. There is a README file in the directory that walks you through it.
-
 * Using the bash terminal, navigate to your PyCatpture2 directory and see that you have the "setup.py" file
-
 * Run the setup.py file USING THE VERSION OF PYTHON IN THE VIRTUAL ENVIRONMENT
   * From bash, run the following command (Your path will probably look like this if you setup your virtual environment in accordance with the other tutorial):  
 ~/.virtualenvs/alien_eye/bin/python3 setup.py install
