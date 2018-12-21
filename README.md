@@ -58,6 +58,8 @@
 * Ensure the the version of PyCapture you have downloaded matches the version of FlyCapture2 that you have.
 * If FlyCapture2 is not yet installed, follow instructions provided by PTGrey for how to install it onto your system. There is a README file in the directory that walks you through it.  
 **NOTE: The version of FlyCapture2 provided in this repo has install instructions for Ubuntu 16.04 as well, so the provided PyCapture2 API may also work with 16.04 if the correct pre-reqs are installed for FlyCapture2 16.04. I have not tried this.**
+**PRO-TIP: After installing the pre-requisites for FlyCapture2, don't forget to use the install_flycatprure.sh file to actually install it**
+**NOTE: Flycapture can be installed from a system level; it does not need to be inside the virtual environment. In fact, I don't even think that installing it into the virtual environment makes sense since it's not a Python package, but I just figured I'd clarify that here.**
 * Using the bash terminal, navigate to your PyCatpture2 directory and see that you have the "setup.py" file
 * Run the setup.py file USING THE VERSION OF PYTHON IN THE VIRTUAL ENVIRONMENT
   * From bash, run the following command (Your path will probably look like this if you setup your virtual environment in accordance with the other tutorial):  
