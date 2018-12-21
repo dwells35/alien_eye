@@ -1,5 +1,5 @@
 # How to do a re-install of the system
-* Download Ubuntu ISO file from ubuntu.com
+* Download desired Ubuntu ISO file from ubuntu.com. All further instructions assume Ubuntu 18.04
 * Install Rufus from https://rufus.ie/en_IE.html
 * Insert empty USB drive into computer (8gb or less USB drive is best because otherwise, it needs to be formatted to FAT32 first, though I think Rufus will automatically do that)
 * Select “ISO Image” in “Create Bootable Disk Using” option
