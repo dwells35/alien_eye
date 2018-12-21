@@ -99,6 +99,9 @@ class Deep_Detector:
         detections = self._net.forward()
         return detections
 
+    def get_refresh_rate(self):
+        return self._refresh_rate
+
     def get_detection_inds(self, detections):
         """
         Return a list of indices corresponding to faces in the detections array

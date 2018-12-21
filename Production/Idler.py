@@ -162,32 +162,32 @@ class Idler():
                 random_y = random.randint(int(.25 * self._OUTPUT_HEIGHT), int(.75 * (self._OUTPUT_HEIGHT - self._EYE_HEIGHT)))
                 self._prev_idle_time = time.time()
                 self._idle_position = (random_x, random_y)
-            smoothed_position = du.avg_center(self._idle_position, smoothed_position, 1/2)
+            smoothed_position = du.smooth_position(self._idle_position, smoothed_position, 1/2)
             return smoothed_position
 
 
         elif self._idle_func == 'roll_idle':
-            smoothed_position = du.avg_center(self._idle_position, smoothed_position)
+            smoothed_position = du.smooth_position(self._idle_position, smoothed_position)
             dt = current_time - self._prev_idle_time
 
             if smoothed_position[0] >= self._OUTPUT_WIDTH or (dt < 1.3 and dt > 1):
-                smoothed_position = du.avg_center((0 - self._EYE_WIDTH, self._OUTPUT_HEIGHT/2 - self._EYE_HEIGHT/2), (0 - self._EYE_WIDTH, self._OUTPUT_HEIGHT/2 - self._EYE_HEIGHT/2))
+                smoothed_position = du.smooth_position((0 - self._EYE_WIDTH, self._OUTPUT_HEIGHT/2 - self._EYE_HEIGHT/2), (0 - self._EYE_WIDTH, self._OUTPUT_HEIGHT/2 - self._EYE_HEIGHT/2))
                 return smoothed_position
                 
             elif smoothed_position[0] > 0 - self._EYE_WIDTH and smoothed_position[0] < 0:
-                smoothed_position = du.avg_center(self._CENTER, smoothed_position, 1/16)
+                smoothed_position = du.smooth_position(self._CENTER, smoothed_position, 1/16)
                 return smoothed_position
                 
             elif dt > .5 and smoothed_position[0] <= self._OUTPUT_WIDTH + self._EYE_WIDTH*2 and smoothed_position[0] >= self._CENTER[0] - 10 and dt < 1.25:
-                smoothed_position = du.avg_center((self._OUTPUT_WIDTH + self._EYE_WIDTH*2, self._OUTPUT_HEIGHT/2 - self._EYE_HEIGHT/2), smoothed_position, 1/16)
+                smoothed_position = du.smooth_position((self._OUTPUT_WIDTH + self._EYE_WIDTH*2, self._OUTPUT_HEIGHT/2 - self._EYE_HEIGHT/2), smoothed_position, 1/16)
                 return smoothed_position
                 
             else:
-                smoothed_position = du.avg_center(self._CENTER, smoothed_position, 1/16)
+                smoothed_position = du.smooth_position(self._CENTER, smoothed_position, 1/16)
                 return smoothed_position
         '''
         elif self._idle_func == 'blink_idle':
-            smoothed_position = du.avg_center(self._CENTER, smoothed_position, 1/16)
+            smoothed_position = du.smooth_position(self._CENTER, smoothed_position, 1/16)
             if not blinking and self._blink_count == 0:
                 blinking = True
                 max_blink_count = random.randint(0, 1)

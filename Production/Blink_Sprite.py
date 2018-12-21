@@ -75,7 +75,7 @@ class Blink_Sprite(pygame.sprite.Sprite):
             self.images[i] = pygame.transform.scale(self.images[i], (output_width, output_height))
 
         self.index = 0
-        self.MAX_INDEX = len(images) - 1
+        self.MAX_INDEX = len(self.images) - 1
         self.image = self.images[self.index]
         self.rect = pygame.Rect(0,0,output_width, output_height)
         self.last_blink_time = 0.0
