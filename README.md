@@ -107,15 +107,15 @@
  
  * Open current_state.txt and look for all of the follwing packages:  
  
-  **cmake==3.12.0  
-  Cython==0.29  
-  dlib==19.16.0  
-  imutils==0.5.1  
-  numpy==1.15.2  
-  opencv-contrib-python==3.4.3.18  
-  PyCapture2==0.0.0  
-  pygame==1.9.4  
-  PyYAML==3.13**  
+    cmake==3.12.0  
+    Cython==0.29  
+    dlib==19.16.0  
+    imutils==0.5.1  
+    numpy==1.15.2  
+    opencv-contrib-python==3.4.3.18  
+    PyCapture2==0.0.0  
+    pygame==1.9.4  
+    PyYAML==3.13  
  
  * PyCapture2 will most likely show up as version 0.0.0, and I'm not sure why. As long as you use the correct setup.py file, it will work.
  * cmake and Cython are only useful if you were to compile any of these packages from source in the future (possible optimization gains from dlib and OpenCV). For this reaons, I left those in this environment.
