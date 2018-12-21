@@ -52,15 +52,15 @@ source /usr/local/bin/virtualenvwrapper.sh
 
 # How to install the correct version of PyCapture2
 
-* Locate the PyCapture2 directory in the git repo or download a version of PyCapture from PTGrey's website (it will be followed by a version number; e.g. PyCapture2-2.13.31). The version provided in the git repo is for Ubuntu 18.04 and will not work with other verisons of Ubuntu.
+* Locate the PyCapture2 directory in this github repo or download a version of PyCapture from PTGrey's website (it will be followed by a version number; e.g. PyCapture2-2.13.31). The version provided in this github repo is for Ubuntu 18.04 and will not work with other verisons of Ubuntu.
 * Ensure the the version of PyCapture you have downloaded matches the version of FlyCapture2 that you have.
 
-* If FlyCapture2 is not yet installed, follow instructions provided by PTGrey for how to install it onto your system
+* If FlyCapture2 is not yet installed, follow instructions provided by PTGrey for how to install it onto your system. There is a README file in the directory that walks you through it.
 
 * Using the bash terminal, navigate to your PyCatpture2 directory and see that you have the "setup.py" file
 
 * Run the setup.py file USING THE VERSION OF PYTHON IN THE VIRTUAL ENVIRONMENT
-  * From bash, run the following command (with your actual path; Your path will probably look like this if you setup your virtual environment in accordance with the other tutorial):  
+  * From bash, run the following command (Your path will probably look like this if you setup your virtual environment in accordance with the other tutorial):  
 ~/.virtualenvs/alien_eye/bin/python3 setup.py install
   * Make sure that you have installed PyCapture into the virtual environment by navigating to the site-packages for the virtual environment and seeing that it is there (This will be in ~/.virtualenvs/alien_eye/lib/python3.6/site-packages/
   * PyCapture2 will most likely show up as version 0.0.0, and I'm not sure why. As long as you use the correct setup.py file, it will work.
