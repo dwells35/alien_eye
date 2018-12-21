@@ -1,4 +1,5 @@
 # How to do a re-install of the system
+## Setup Bootable USB
 * Download desired Ubuntu ISO file from ubuntu.com. All further instructions assume Ubuntu 18.04
 * Install Rufus from https://rufus.ie/en_IE.html
 * Insert empty USB drive into computer (8gb or less USB drive is best because otherwise, it needs to be formatted to FAT32 first, though I think Rufus will automatically do that)
@@ -7,6 +8,7 @@
 * It will tell you it’s a hybrid ISO, just proceed with the default option (ISO)
 * Hit OK when it lets you know everything will be wiped
 * Wait for ISO to be mounted to USB drive
+## Load the OS onto the NUC
 * Once the ISO is mounted, make sure the NUC is powered off. 
 * Plug the USB into the NUC, and power it on
 * Hit “F2” like a madman until you get into the BIOS
@@ -17,6 +19,7 @@
 * Select “Re-install Ubuntu” to reinstall
 * Finish steps and wait until installation is done
 * Reboot
+## Configure your system
 * Turn off automatic updates
   * Open "Software Updater" and select "Settings" after it is done checking for updates
   * Go to the dropdown for "Automatically check for updates" and select "Never"
@@ -57,8 +60,8 @@
 * Locate the PyCapture2 directory in this github repo or download a version of PyCapture from PTGrey's website (it will be followed by a version number; e.g. PyCapture2-2.13.31). The version provided in this github repo is for Ubuntu 18.04 and will not work with other verisons of Ubuntu.
 * Ensure the the version of PyCapture you have downloaded matches the version of FlyCapture2 that you have.
 * If FlyCapture2 is not yet installed, follow instructions provided by PTGrey for how to install it onto your system. There is a README file in the directory that walks you through it.  
-**NOTE: The version of FlyCapture2 provided in this repo has install instructions for Ubuntu 16.04 as well, so the provided PyCapture2 API may also work with 16.04 if the correct pre-reqs are installed for FlyCapture2 16.04. I have not tried this.**
-**PRO-TIP: After installing the pre-requisites for FlyCapture2, don't forget to use the install_flycatprure.sh file to actually install it**
+**NOTE: The version of FlyCapture2 provided in this repo has install instructions for Ubuntu 16.04 as well, so the provided PyCapture2 API may also work with 16.04 if the correct pre-reqs are installed for FlyCapture2 16.04. I have not tried this.**  
+**PRO-TIP: After installing the pre-requisites for FlyCapture2, don't forget to use the install_flycatprure.sh file to actually install it**  
 **NOTE: Flycapture can be installed from a system level; it does not need to be inside the virtual environment. In fact, I don't even think that installing it into the virtual environment makes sense since it's not a Python package, but I just figured I'd clarify that here.**
 * Using the bash terminal, navigate to your PyCatpture2 directory and see that you have the "setup.py" file
 * Run the setup.py file USING THE VERSION OF PYTHON IN THE VIRTUAL ENVIRONMENT
