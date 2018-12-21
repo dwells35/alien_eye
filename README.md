@@ -28,11 +28,11 @@
 * Open the Ubuntu Software app and search for "hide top bar" and install it. This will hide the top bar automatically when the animation is full screen
 * Open a terminal instance with Ctrl+Alt+T
 * Install git and pip with the following commands:  
-```
-sudo apt-get update  
-sudo apt-get upgrade  
-sudo apt-get install git python3-pip -y
-```
+  ```
+  sudo apt-get update  
+  sudo apt-get upgrade  
+  sudo apt-get install git python3-pip -y
+  ```
 
 * Check to make sure they are installed by running the following commands:  
   ```
@@ -42,28 +42,38 @@ sudo apt-get install git python3-pip -y
 
 * If there are version numbers, you're good
 * Navigate to Documents and clone this github repo with the following command:
-  ```git clone https://github.com/dwells35/alien_eye.git
+  ```
+  git clone https://github.com/dwells35/alien_eye.git
+  ```
 
 # How to create a virtual environment in which to work
 * Run the following command using pip:  
 
-  ```sudo pip3 install virtualenv virtualenvwrapper```
+  ```
+  sudo pip3 install virtualenv virtualenvwrapper
+  ```
 
 * Now we will update our ~/.bashrc file to include the following lines at the _bottom_ of the file:  
 
-  ```export WORKON_HOME=$HOME/.virtualenvs  
-export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3  
-source /usr/local/bin/virtualenvwrapper.sh```  
+  ```
+  export WORKON_HOME=$HOME/.virtualenvs  
+  export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3  
+  source /usr/local/bin/virtualenvwrapper.sh
+  ```  
 
 * source the .bashrc file (source ~/.bashrc from the command line) or close the terminal and start a new terminal instance
 * Go to Documents (or wherever you cloned the github repo) and cd into alien_eye
 * Next, let's create our virtual environment called "alien_eye" with the following command:  
 
-```mkvirtualenv alien_eye -p python3 -r requirements.txt```
+  ```
+  mkvirtualenv alien_eye -p python3 -r requirements.txt
+  ```
 
 * Let's double check that our virtual environment is active by typing the followng command:  
 
-  ```workon alien_eye```
+  ```
+  workon alien_eye
+  ```
 
 * If everyting is successful, "(alien_eye)" should show up before our username in the terminal
 * Exit this virtual environment at any time by calling "deactivate" from the terminal
@@ -84,24 +94,28 @@ source /usr/local/bin/virtualenvwrapper.sh```
 * Run the setup.py file USING THE VERSION OF PYTHON IN THE VIRTUAL ENVIRONMENT
   * From bash, run the following command (Your path will probably look like this if you setup your virtual environment in accordance with the other tutorial):  
   
-  ```~/.virtualenvs/alien_eye/bin/python3 setup.py install```
+  ```
+  ~/.virtualenvs/alien_eye/bin/python3 setup.py install
+  ```
 
 # Last Check
  * Make sure that you have installed PyCapture into the virtual environment (and all other packages necessesary) by navigating to ~/Documents and running the following command:  
  
-   ```pip freeze > current_state.txt```
+   ```
+   pip freeze > current_state.txt
+   ```
  
  * Open current_state.txt and look for all of the follwing packages:  
  
-   **cmake==3.12.0  
- Cython==0.29  
- dlib==19.16.0  
- imutils==0.5.1  
- numpy==1.15.2  
- opencv-contrib-python==3.4.3.18  
- PyCapture2==0.0.0  
- pygame==1.9.4  
- PyYAML==3.13**  
+  **cmake==3.12.0  
+  Cython==0.29  
+  dlib==19.16.0  
+  imutils==0.5.1  
+  numpy==1.15.2  
+  opencv-contrib-python==3.4.3.18  
+  PyCapture2==0.0.0  
+  pygame==1.9.4  
+  PyYAML==3.13**  
  
  * PyCapture2 will most likely show up as version 0.0.0, and I'm not sure why. As long as you use the correct setup.py file, it will work.
  * cmake and Cython are only useful if you were to compile any of these packages from source in the future (possible optimization gains from dlib and OpenCV). For this reaons, I left those in this environment.
