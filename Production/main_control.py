@@ -126,13 +126,13 @@ def run_machine_vision(q, sub_pipe_end, video_dims):
     #vs = imutils.FileVideoStream('no_vis_light.mp4').start()
 
     #use imutils.VideoStream to read video from a webcam for testing
-    #vs = imutils.VideoStream(src=0, resolution = video_dims).start()
+    vs = imutils.VideoStream(src=0, resolution = video_dims).start()
 
     #Threaded application of PTGrey Camera-- Use PTCamera_Threaded
     #vs = PTCamera(resolution = video_dims).start()
 
     #Non-threaded application of PTGrey Camera
-    vs = PTCamera(resolution = video_dims)
+    #vs = PTCamera(resolution = video_dims)
 
     #Let the camera warm up and set configuration
     time.sleep(2)
