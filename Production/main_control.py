@@ -203,6 +203,7 @@ def run_machine_vision(q, sub_pipe_end, video_dims):
     #check to make sure that the identified face is of a reasonable size; For the PTGrey Camera, I found ~50 works well.
     #other cameras will require other thresholds
     face_width_threshold = 100
+    no_frame_count = 0
 
     while running:
         if sub_pipe_end.poll():
@@ -210,29 +211,36 @@ def run_machine_vision(q, sub_pipe_end, video_dims):
         current_time = time.time()
         #Reading from the camera is I/O gating.
         frame = vs.read()
-        frame = imutils.resize(frame, width=input_video_width)
+        if frame != None:
+            no_frame_count = 0
+            frame = imutils.resize(frame, width=input_video_width)
 
-        if not tracking_face or current_time - last_detector_update_time > net.get_refresh_rate():
-            last_detector_update_time = current_time
-            tracking_face = run_detector(net, frame, tracker, q, face_width_threshold)
-            #count += 1
-            #detector_count += 1
+            if not tracking_face or current_time - last_detector_update_time > net.get_refresh_rate():
+                last_detector_update_time = current_time
+                tracking_face = run_detector(net, frame, tracker, q, face_width_threshold)
+                #count += 1
+                #detector_count += 1
 
-        if tracking_face:
-            #count += 1
-            track_quality = tracker.get_track_quality(frame)
-            if track_quality >= tracker.get_quality_threshold():
-                run_tracker(tracker, frame, q)
-            else:
-                tracking_face = False 
+            if tracking_face:
+                #count += 1
+                track_quality = tracker.get_track_quality(frame)
+                if track_quality >= tracker.get_quality_threshold():
+                    run_tracker(tracker, frame, q)
+                else:
+                    tracking_face = False 
 
-        #Wait two milliseconds before looping again. OpenCV will freeze if this number
-        #is too low or the waitKey call is omitted. If waitKey is called with no params,
-        #the program will wait indefinitely for the user to hit a key before it
-        #runs another loop; nice for debugging. 
-        cv2.waitKey(2)
+            #Wait two milliseconds before looping again. OpenCV will freeze if this number
+            #is too low or the waitKey call is omitted. If waitKey is called with no params,
+            #the program will wait indefinitely for the user to hit a key before it
+            #runs another loop; nice for debugging. 
+            cv2.waitKey(2)
+
+        else:
+            no_frame_count += 1
+            if no_frame_count == 50:
+                print('Received too many null frames; exiting machine_vision_subprocess')
+                break
         
-
     end_machine_vision_time = time.time()
     #fps = count / (end_machine_vision_time - start_machine_vision_time)
     #print('Machine Vision fps: ' + str(fps))
@@ -337,7 +345,7 @@ def map_center_to_corner(scaled_point):
     return  corner_point
 
 
-def update_position(position, designation, q):
+def update_position(position, data_origin, q):
     """
     Update position of the eye based on tracker/detector data (gotten from queue)
 
@@ -346,7 +354,7 @@ def update_position(position, designation, q):
     postition: tuple of ints
         Position of the last point the eye was drawn
 
-    designation: int
+    data_origin: int
         Either a one or a zero; this lets this function know if the point was put there by the detector
         or the tracker. This is used to control dilation behavior when a new face is found.
 
@@ -361,20 +369,20 @@ def update_position(position, designation, q):
     position_prev: tuple of ints
         Previous position of the eye; used for checking if the eye is idle
 
-    designation: int
+    data_origin: int
         Either a one or a zero; this lets this function know if the point was put there by the detector
         or the tracker. This is used to control dilation behavior when a new face is found.
     """
     if not q.empty():
         position_prev = position
-        designation_prev = designation
-        center_position, designation = q.get()
+        data_origin_prev = data_origin
+        center_position, data_origin = q.get()
         scaled_point = scale_point_to_display(center_position, flip_horizontal = True)
         position = map_center_to_corner(scaled_point)
         position = control_ouput_region(position)
         #Send a blink request if a face is detected outside of a 5x5 bounding box
         #where the tracked center was
-        if designation - designation_prev == -1 \
+        if data_origin - data_origin_prev == -1 \
         and not dilate_sprite.dilate_req \
         and abs(position[0] - position_prev[0]) > 5 \
         and abs(position[1] - position_prev[1]) > 5:
@@ -385,7 +393,7 @@ def update_position(position, designation, q):
         position_prev = position
 
 
-    return position, position_prev, designation
+    return position, position_prev, data_origin
 
 def control_dilation(current_time):
     """
@@ -415,13 +423,21 @@ def control_dilation(current_time):
     return eye_im_show
 
 def control_blinking(current_time):
-    #control blinking frequency
+    """
+    Control blinking frequency: blinking is pseudo random; one blink happens between between every
+        3.0 and 6.0 seconds
+
+    Parameters
+    ----------
+    current_time: double
+        Time since the epoch; used to get current time of the main animation loop
+    """
+
     global blinking
     global ball_in_hole
 
     if not blinking \
     and not ball_in_hole \
-    and not dilate_sprite.dilate_req \
     and current_time - blink_sprite.last_blink_time > blink_sprite.rand_blink_time:
         blink_sprite.rand_blink_time = random.uniform(3.0, 6.0)
         blinking = True
@@ -436,31 +452,60 @@ def control_blinking(current_time):
         if blink_sprite.index == blink_sprite.MAX_INDEX:
             blinking = False
 
-def check_ball_in_hole(smoothed_position, events):
-    global ball_in_hole
-    global ball_in_hole_time_start
+def check_ball_in_hole(events):
+    """
+    Check to see if the program has received a simulated 'h' key denoting that the ball has been
+        putted into the hole
 
-    #initialize i = 0 and increasing = True for ball_in_hole sequence
-    sequence_info = (smoothed_position, 0, True)
-    #event is a queue run by pygame that handles all input. When "get" is called,
-    #it will return all the messages that have accumulated in the queue. Here, we
-    #iterate over each message to see if it's what we want.
+
+    Parameters
+    ----------
+    events: pygame Event queue
+        Queue of all game events that have happened since the last time the queue was emptied
+
+    Returns
+    -------
+    ball_in_hole_init: boolean
+        Flag that tells sequence_info to initialize; acts as a one-shot. Makes sure that sequence
+        info is only initialized when another keystroke is detected.
+    """
+    global ball_in_hole_time_start
+    ball_in_hole_init = False
+
     #This will cause the ball_in_hole event to fire when the 'h' key is pressed on the keyboard
     for event in events:
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_h and not ball_in_hole:
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_h:
             ball_in_hole_time_start = time.time()
-            ball_in_hole = True
             dilate_sprite.dilate_req = True
+            ball_in_hole_init = True
 
-    return sequence_info
+    return ball_in_hole_init
 
-def handle_ball_in_hole(current_time, sequencer_info, eye_im_show):
+def pulse_schlera(current_time, sequencer_info):
+    """
+    Control behavior when ball is hit into hole
+
+    This will cause the eye to look down at the hole and make the schlera pulse red (or any other color desired)
+
+    Parameters
+    ----------
+    current_time: double
+        Time since the epoch; used to get current time of the main animation loop
+
+    sequencer_info: tuple -> (i: int, increasing: boolean)
+        Used to control the pulsing schera. Increasing denotes if i (the color index) is increasing
+        or decreasing.
+
+    Returns
+    -------
+    sequencer_info: tuple -> (i: int, increasing: boolean)
+        Used to control the pulsing schera. Increasing denotes if i (the color index) is increasing
+        or decreasing.
+    """
     global ball_in_hole
-    #Control behavior when ball is hit into hole
-    smoothed_position, i, increasing = sequencer_info
+    i, increasing = sequencer_info
 
-    smoothed_position = du.smooth_position(HOLE, smoothed_position, 1/4)
-    
+    #Make the color of the schlera pulse red; change pulse speed by changing how quickly i is incremented
     if increasing and i <= SCHLERA_RED_MAX:
         i += 2
         out_display.fill((i, 0, 0))
@@ -472,14 +517,27 @@ def handle_ball_in_hole(current_time, sequencer_info, eye_im_show):
         if i == 0:
             increasing = True
 
-    out_display.blit(eye_im_show, smoothed_position)
+    #Control how long the eye looks down at the hole; Make sure also to stop looking down when i has returned to 0
     if current_time - ball_in_hole_time_start > 4.5 and i == 0:
         ball_in_hole = False
 
-    return (smoothed_position, i, increasing)
+    return (i, increasing)
 
 def check_idle(position, position_prev, current_time):
-    #check to see if the coordinate received from the machine vision pipeline is within a 1x1 bounding box of the previous coordinate
+    """
+    Check to see if the coordinate received from the machine vision pipeline is within a 1x1 bounding box of the previous coordinate
+    
+    Parameters
+    ----------
+    position: tuple of ints
+        Current position of the eye
+
+    position_prev: tuple of ints
+        Previous position of the eye
+
+    current_time: double
+        Time since the epoch; used to get current time of the main animation loop
+    """
     if abs(position[0] - position_prev[0]) < 1 and abs(position[1] - position_prev[1]) < 1 and not ball_in_hole:
         idle_time = current_time - idler.get_idle_watch_start()
         if idle_time > idler.get_idle_time_trigger() and not idler.is_running_idle():
@@ -490,12 +548,54 @@ def check_idle(position, position_prev, current_time):
         idler.set_running_idle(False)
 
 def handle_idle(current_time, smoothed_position, eye_im_show):
+    """
+    Run an idle behavior if the eye has been determined to be idle
+
+    Parameters
+    ----------
+    current_time: double
+        Time since the epoch; used to get current time of the main animation loop
+    
+    smoothed_position: tuple of ints
+        Position of the eye after it has been passed through the alpha smoothing algorithm
+
+    eye_im_show: pygame image
+        The current image of the eye
+
+    Returns
+    -------
+    smoothed_position: tuple of ints
+        Updated position of the eye after it has been passed through the alpha smoothing algorithm; in this
+        case, after the idle behavior has altered the position of the eye
+    """
     smoothed_position = idler.run_idle(current_time, smoothed_position)
     out_display.fill((0,0,0))
     out_display.blit(eye_im_show, smoothed_position)
     return smoothed_position
 
 def run_main_animation(position, smoothed_position, eye_im_show):
+    """
+    Handles default animation of the eye; i.e. normal tracking behavior animation
+
+    Parameters
+    ----------
+    position: tuple of ints
+        Current position of the eye (to be drawn at)
+
+    smoothed position: tuple of ints
+        Position of eye after being passed through alpha smoothing algorithm. In this case, this is the
+        last position at which the eye was actually drawn
+
+    eye_im_show: pygame image
+        Current image of the eye (this changes with dilation)
+
+    Returns
+    -------
+    smoothed_position: tuple of ints
+        Position of eye after being passed through alpha smoothing algorithm. In this case, this is the
+        NEW last position at which the eye was actually drawn
+
+    """
     smoothed_position = du.smooth_position(position, smoothed_position, 1/10)
     out_display.fill((0,0,0))
     out_display.blit(eye_im_show, smoothed_position)
@@ -508,10 +608,16 @@ def run_main_animation(position, smoothed_position, eye_im_show):
 '''
 
 def service_shutdown(signum, frame):
+    """
+    Custom exception caught from signals to terminate processes cleanly
+    """
     raise Service_Exit
 
 def initialize_globals():
-     
+    """
+    Initialize all global variables
+    """
+
     #Use this to toggle optional features useful for debugging. Set to False for production.
     global DEBUG; DEBUG = True
     #set factor to make eye look at a person. This factor helps map a coordinate to an artificial bounding box
@@ -553,7 +659,7 @@ def initialize_globals():
     global CENTER; CENTER = (int((output_width -  eye_width)/2),
                  int((output_height - eye_height)/2))
     #set desired framerate
-    global FRAMERATE; FRAMERATE = 30
+    global FRAMERATE; FRAMERATE = 40
     #initialize time delta to control how often the animation updates
     global DELTA_T; DELTA_T = (1/FRAMERATE)
     #initialize an idler to handle when the program is at idle
@@ -563,25 +669,35 @@ def initialize_globals():
     global ball_in_hole_time_start
 
 def setup():
-     #initialize PyGame for output animation
+    """
+    Initialize Processes, PyGame, and communication channels
+
+    Returns
+    -------
+    (machine_vision_subprocess, q, main_pipe_end): tuple
+        This tuple is given to the main loop so that these structures can be properlly terminated
+    """
+
+    #initialize PyGame for output animation
     pygame.display.init()
     initialize_globals()
     #create a caption for the output display
     pygame.display.set_caption('Alien Eye')
-     # initialize the video stream and allow the cammera sensor to warmup
+    #initialize the video stream and allow the cammera sensor to warmup
     print("[INFO] starting video stream...")
-    #Only allow pygame events of type KEYDOWN and type QUIT into the pygame event queue. This prevents it 
+    #Only allow pygame events of type KEYDOWN and type QUIT into the pygame event queue. This prevents the event queue 
     #from ever getting bloated. This queue is automatically setup by pygame but must be manually emptied
-    #with get() or poll(). See "check_ball_in_hole()" for information on pygame.event.get()
+    #with get() or poll().
     pygame.event.set_allowed([pygame.KEYDOWN, pygame.QUIT])
     
     video_dims = (input_video_width, input_video_height)
-    
-    #initialize Queue to pass data from detector thread to main thread
+
+    #initialize Pipe to pass signal data (process termination data) from animation process
+    #to machine vision process; duplex is False, so information can only flow one way
     sub_pipe_end, main_pipe_end = multiprocessing.Pipe(duplex = False)
+    #initialize Queue to pass face location data from machine vision process to animation process
     q = multiprocessing.JoinableQueue(maxsize=4)
-    #Start running the detector and the tracker on seperate threads so that they won't bog down
-    #the output display speed
+    #Run machine vision in a seperate process to keep it from bogging down animation
     machine_vision_subprocess = multiprocessing.Process(target = run_machine_vision, args=(q, sub_pipe_end, video_dims))
     machine_vision_subprocess.start()
     #setup signals to let the program capture user sent termiantion (SIGINT) and program sent termination (SIGTERM)
@@ -595,12 +711,12 @@ def main():
     machine_vision_subprocess, q, main_pipe_end = setup()
     #initialize previous time to use for checking when to run the animation loop
     previous_time = 0
-    #initialize designation for center point given to queue
+    #initialize data_origin for center point given to queue
     #'0' designates that the detector put the value in the queue
     #'1' designates that the tracker put the value into the queue
     #This is used for "rising edge detection" to flag when the detector has run
     #and lets the animation loop control when the eye will dilate when it detects a new person
-    designation = 0
+    data_origin = 0
     #initialize all possible starting locations for the eye as CENTER
     smoothed_position = CENTER
     position = CENTER
@@ -611,23 +727,61 @@ def main():
     clock = pygame.time.Clock()
     #fps counter initialize
     #count = 0
+
+    #This is to appease Python because of how ball_in_hole is referenced later in this loop.
+    #It needs to understance ball_in_hole should always be global
+    global ball_in_hole
+
     try:
-        profiling_watch_end = time.time()
+        #profiling_watch_end = time.time()
         start_fps_timer = time.time()
+        
+        #MAIN LOOP
         while running:
             clock.tick(FRAMERATE)
             current_time = time.time()
-            #get all events for this loop; clears the queue
+
+            ######################
+            #GAME EVENT GATHERING#
+            ######################
+            #event is a queue run by pygame that handles all input. When "get" is called,
+            #it will return all the messages that have accumulated in the queue. It will also clear
+            #the queue.
             events = pygame.event.get()
-            position, position_prev, designation = update_position(position, designation, q)
+
+            #####################
+            #EYE POSITION UPDATE#
+            #####################
+            position, position_prev, data_origin = update_position(position, data_origin, q)
+
+            ##########
+            #DILATION#
+            ##########
             eye_im_show = control_dilation(current_time)
 
-            if not ball_in_hole:
-                sequence_info = check_ball_in_hole(smoothed_position, events)
+            ##############
+            #BALL IN HOLE#
+            ##############
+            ball_in_hole_init = check_ball_in_hole(events)
+            #Only run this initialization statement if a ball is putted in AND the eye is currently not looking
+            #down at the hole. This lets multiple people to hit their ball in, and it will not interupt the
+            #eye's "looking at the hole" animation, but it will extend the time it looks down
+            #(by resetting ball_in_hole_time_start)
+            if ball_in_hole_init and not ball_in_hole:
+                #initialize i = 0 and increasing = True for ball_in_hole sequence
+                sequence_info = (0, True)
+                ball_in_hole = True
+
             if ball_in_hole:
-                sequence_info = handle_ball_in_hole(current_time, sequence_info, eye_im_show)
-                smoothed_position = sequence_info[0]
-            #handle main animation
+                sequence_info = pulse_schlera(current_time, sequence_info)
+                #Update the position of the eye to be the HOLE constant
+                smoothed_position = du.smooth_position(HOLE, smoothed_position, 1/4)
+                #draw the eye on the display
+                out_display.blit(eye_im_show, smoothed_position)
+
+            ##############################
+            #MAIN ANIMATION (EYE DRAWING)#
+            ##############################
             if not ball_in_hole and not idler.is_running_idle():
                 smoothed_position = run_main_animation(position, smoothed_position, eye_im_show)
             #handle idle behavior
@@ -635,10 +789,17 @@ def main():
             if idler.is_running_idle():
                 smoothed_position = handle_idle(current_time, smoothed_position, eye_im_show)
 
+            ##########
+            #BLINKING#
+            ##########
+            #Blinking must be done after eye drawing for the layers to look correct
             control_blinking(current_time)
-            #update output display
+
+            #######################
+            #UPDATE OUPTUT DISPLAY#
+            #######################
             pygame.display.update()
-            #check to see if game has been exited (by hitting the red "X" on the display)
+            #check to see if game has been exited (by hitting the red "X" on the display or hitting the "ESC" key)
             #Since the event queue is cleared on every loop by the "check_ball_in_hole" command, one
             #may need to spam the ESCAPE key to get this to fire since the event must be triggered between that fucntion
             #and this one
@@ -652,12 +813,15 @@ def main():
             if profiling_watch_end - start_fps_timer > 30:
                 running = False
                 print("edning Subprocess")
-            '''
+            
             profiling_watch_end = time.time()
+            '''
             #count += 1
     except Service_Exit:
+        print('Service_Exit')
         main_pipe_end.send(False)
     except KeyboardInterrupt:
+        print('KeyboardInterrupt')
         main_pipe_end.send(False)
 
     finally:
