@@ -29,36 +29,78 @@ import display_utils as du
 def get_detection_data(indices, net, detections):
     """
     Pick a random index from that list of indices (this way, if there are multiple people,
-    the alien won't get fixated on just one person)
+    the alien won't get fixated on just one person) and return that face's bounding box
+
+    Parameters
+    ----------
+    indices: list of ints
+    	List of integer indices corresponding to faces in the detections list that meet or exceed the confidence threshold
+
+    net: Deep_Detector detector
+    	The Deep_Detector object from which data about the detected faces is pulled
+
+    detections: 4D array of ints
+    	4D array of faces that the net identified in the image
+
+    Returns
+    -------
+
+    bounding_box: tuple of ints
+    	tuple of length 4 with corners of the bounding box of the detected face in it: (startX, startY, endX, endY)
     """
 
     num = random.randint(0, len(indices) - 1)
     ind_of_interest = indices[num]
     #get bounding box of detected face
     bounding_box = net.detection_box(detections, ind_of_interest)
-    #unpack bounding box into its components
-    startX, startY, endX, endY = bounding_box
-    detected_center_raw = (int((endX - startX) / 2) + startX, int((endY - startY) / 2) + startY)
 
-    return detected_center_raw, bounding_box
+    return bounding_box
 
-def run_detector(net, frame, tracker, q):
+def run_detector(net, frame, tracker, q, face_width_threshold):
     """
+    Uses a nerual net to detect faces in an input image and starts a tracker if a vaild face is found
+
     Picks a face from a list of detected faces. If a face is found, a bounding box
     for the face is returned and the center of the box is given to the queue for
-    animation. If none are found, tracking_face is False, and the detector tries
+    animation. The bounding box is also used to create a new correlation tracker.
+	
+	If none are found, tracking_face is False, and the detector tries
     again on the next frame.
+
+	Parameters
+	----------
+    net: Deep_Detector detector
+    	The Deep_Detector object from which data about the detected faces is pulled
+
+    frame: numpy ndarray
+    	image from input video stream from which to find faces
+
+    tracker: Tracker
+    	A tracker object that is used to create a new correlation tracker if a valid face is found
+
+    q: Multiprocessing Joinable Queue
+        Queue that holds tracked/detected points
+
+    face_width_threshold: int
+    	Maximum width of a bounding box containing a face; used to help prevent false positives seen in previous testing
+
+    Returns
+    -------
+	tracking_face: boolean
+		Flag denoting that a face was found that met all necessary criteria and has been given to the Tracker to track
     """
 
     detections = net.get_detections(frame)
     indices = net.get_detection_inds(detections)
     tracking_face = False
     if len(indices) > 0:
-        detected_center_raw, bounding_box = get_detection_data(indices, net, detections)
-
+        bounding_box = get_detection_data(indices, net, detections)
+        #unpack bounding box into its components
         startX, startY, endX, endY = bounding_box
+        detected_center_raw = (int((endX - startX) / 2) + startX, int((endY - startY) / 2) + startY)
 
-        if (endX - startX) < 100 and not q.full():
+
+        if (endX - startX) < face_width_threshold and not q.full():
             tracker = start_tracker(tracker, frame, startX, startY, endX, endY)
             tracking_face = True
             q.put((detected_center_raw, 0))
@@ -116,7 +158,7 @@ def run_machine_vision(q, sub_pipe_end, video_dims):
     
     Parameters
     ----------
-    q: Queue
+    q: Multiprocessing Joinable Queue
         in which points are placed from the detector/tracker
 
     sub_pipe_end: Pipe
@@ -157,6 +199,11 @@ def run_machine_vision(q, sub_pipe_end, video_dims):
     start_machine_vision_time = time.time()
     #count = 0
     #detector_count = 0
+
+    #check to make sure that the identified face is of a reasonable size; For the PTGrey Camera, I found ~50 works well.
+    #other cameras will require other thresholds
+    face_width_threshold = 100
+
     while running:
         if sub_pipe_end.poll():
             running = sub_pipe_end.recv()
@@ -167,7 +214,7 @@ def run_machine_vision(q, sub_pipe_end, video_dims):
 
         if not tracking_face or current_time - last_detector_update_time > net.get_refresh_rate():
             last_detector_update_time = current_time
-            tracking_face = run_detector(net, frame, tracker, q)
+            tracking_face = run_detector(net, frame, tracker, q, face_width_threshold)
             #count += 1
             #detector_count += 1
 
@@ -209,27 +256,59 @@ def control_ouput_region(position):
     ----------
     position: tuple of ints
         Position of the eye after it has been mapped to the corner of
-        the eye output image. 
+        the eye output image.
+
+    Returns
+    -------
+    position: tuple of ints
+    	Updated position if the input position is found to be "out of bounds";
+    	otherwise simply returns input position
     """
 
     x = position[0]
     y = position[1]
 
     if x < 0:
-        position[0] = 0
+        position = (0, position[1])
     elif x > (output_width - eye_width):
-        position[0] = output_width - eye_width
+        position = (output_width - eye_width, position[1])
 
     if y < 0:
-        position[1] = 0
+        position = (position[0], 0)
     elif y > (output_height - eye_height):
-        position = output_height - eye_height
+        position = (position[0], output_height - eye_height)
 
     return position
 
 def scale_point_to_display(center_point_raw, flip_horizontal = False):
+    """
+    Scales the input center point to a corresponding point on the output image.
+
+    Not quite a one-to-one mapping since this function also takes into account a restricted bounding box that is
+    a function of the camera's field of view (FOV). This makes sure that the eye actually looks at a person.
+
+    Parameters
+    ----------
+    center_point_raw: tuple of ints
+        Center point of face given from tracker or detector; therefore, this center point corresponds to
+        a pixel on the input video image (frame)
+
+    flip_horizontal: boolean, default = False
+        This flag tells this function whether or not the center point needs to be mirrored along the vertical axis
+        to correctly look at someone.
+        NOTE: this flag is optional since the camera has this capability built in, but webcams often do not. It was easier
+        to make it programmatically changeable here, though one could do this from the PT Grey camera configuration if performance
+        gains were needed
+
+    Returns
+    -------
+    (output_x, output_y): tuple of ints
+        This tuple represents the coordinate of the face in the output image that corresponds to the
+        location of the face in the input image (but sllightly different because of scaling from camera FOV)
+    """
     x = center_point_raw[0]
     y = center_point_raw[1]
+
     if flip_horizontal:
         x = input_video_width - x
     norm_x = ((x / input_video_width) / eye_view_adjustment_factor) 
@@ -239,17 +318,53 @@ def scale_point_to_display(center_point_raw, flip_horizontal = False):
     return (output_x, output_y)
 
 def map_center_to_corner(scaled_point):
-    #move the center of the detected face to a corresponding place in the output image
-    #i.e., if the face was found in the center of the camera input image, and the camera image
-    #was 480x480, then center = (240, 240), but the output image is much larger (maybe 1080x1080),
-    #so the center value must be mapped to the center of the output image in order for things to look
-    #correct
-    #center_point = (offset_x - center_point_raw[0], center_point_raw[1] + offset_y)
-    #convert detected center to corner point of image in order to give point 
-    return (scaled_point[0] - eye_width/2, scaled_point[1] - eye_height/2) 
+    """
+    Convert scaled center (center point on output image) to corner point of image in order for the
+    image to be drawn correctly centered
+
+    Parameters
+    ----------
+    scaled_point: tuple of ints
+    	Center point of the eye with repect to the output image
+
+    Returns
+    -------
+	corner_point: tuple of ints
+		Center point mapped to the corner of the eye image
+    """
+
+    corner_point = (scaled_point[0] - eye_width/2, scaled_point[1] - eye_height/2)
+    return  corner_point
 
 
 def update_position(position, designation, q):
+    """
+    Update position of the eye based on tracker/detector data (gotten from queue)
+
+    Parameters
+    ----------
+    postition: tuple of ints
+        Position of the last point the eye was drawn
+
+    designation: int
+        Either a one or a zero; this lets this function know if the point was put there by the detector
+        or the tracker. This is used to control dilation behavior when a new face is found.
+
+    q: Multiprocessing Joinable Queue
+        Points are placed from the detector/tracker
+
+    Returns
+    -------
+    position: tuple of ints
+        New position of eye as given from tracker/detector
+
+    position_prev: tuple of ints
+        Previous position of the eye; used for checking if the eye is idle
+
+    designation: int
+        Either a one or a zero; this lets this function know if the point was put there by the detector
+        or the tracker. This is used to control dilation behavior when a new face is found.
+    """
     if not q.empty():
         position_prev = position
         designation_prev = designation
@@ -273,8 +388,21 @@ def update_position(position, designation, q):
     return position, position_prev, designation
 
 def control_dilation(current_time):
+    """
+    Control when dilation occurs: looks for a dilation request to be set (dilate_req)
+
+    Parameters
+    ----------
+    current_time: double
+        Time since the epoch; used to get current time of the main animation loop
+
+    Returns
+    -------
+    eye_im_show: pygame Image
+        The eye image that will be displayed
+    """
     
-    if dilate_sprite.dilate_req and not blinking and not dilate_sprite.dilating:
+    if dilate_sprite.dilate_req and not dilate_sprite.dilating:
         dilate_sprite.dilating = True
         dilate_sprite.dilate_clock = current_time - 1
 
@@ -345,7 +473,7 @@ def handle_ball_in_hole(current_time, sequencer_info, eye_im_show):
             increasing = True
 
     out_display.blit(eye_im_show, smoothed_position)
-    if current_time - ball_in_hole_time_start > 4:
+    if current_time - ball_in_hole_time_start > 4.5 and i == 0:
         ball_in_hole = False
 
     return (smoothed_position, i, increasing)
@@ -547,6 +675,7 @@ def main():
         print("Ended Gracefully")
         print('Subprocess is still live: ' + str(machine_vision_subprocess.is_alive()))
         quit()
-        
+
+#Run the whole thing
 if __name__ == '__main__':
     main()

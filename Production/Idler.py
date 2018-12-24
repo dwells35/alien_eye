@@ -141,7 +141,7 @@ class Idler():
 
         Parameters
         ----------
-        current_time: float
+        current_time: double
             The current time in seconds since the epoch; used to mark current time in animation
 
         smoothed_position: tuple of ints

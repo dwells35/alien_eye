@@ -105,7 +105,7 @@ class Dilate_Sprite(pygame.sprite.Sprite):
 
         Parameters
         ----------
-        current_time: float
+        current_time: double
             Time since the epoch; used to get current time of the main animation loop
         """
         if current_time - self.dilate_clock > self.dilate_refresh_time:
