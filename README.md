@@ -26,7 +26,7 @@
 * Go to Settings>Dock and select "Auto-hide Dock"
 * Go to Settings>Devices>Displays and set the resolution to 1024x768 (4:3)
 * Open the Ubuntu Software app and search for "hide top bar" and install it. This will hide the top bar automatically when the animation is full screen
-* Open a terminal instance with Ctrl+Alt+T
+* Open a terminal instance with Ctrl+Alt+t
 * Install git and pip with the following commands:  
   ```
   sudo apt-get update  
@@ -59,7 +59,7 @@
   export WORKON_HOME=$HOME/.virtualenvs  
   export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3  
   source /usr/local/bin/virtualenvwrapper.sh
-  ```  
+  ```
 
 * source the .bashrc file (source ~/.bashrc from the command line) or close the terminal and start a new terminal instance
 * Go to Documents (or wherever you cloned the github repo) and cd into alien_eye
@@ -100,11 +100,11 @@
 
 # Last Check
  * Make sure that you have installed PyCapture into the virtual environment (and all other packages necessesary) by navigating to ~/Documents and running the following command:  
- 
-   ```
-   pip freeze > current_state.txt
-   ```
- 
+
+  ```
+  pip freeze > current_state.txt
+  ```
+
  * Open current_state.txt and look for all of the follwing packages:  
     ```
     cmake==3.12.0  
@@ -120,3 +120,18 @@
  * Delete current_state.txt to keep everyting clean and tidy
  * PyCapture2 will most likely show up as version 0.0.0, and I'm not sure why. As long as you use the correct setup.py file, it will work.
  * cmake and Cython are only useful if you were to compile any of these packages from source in the future (possible optimization gains from dlib and OpenCV). For this reaons, I left those in this environment.
+
+# How to Run the Eye
+  * Open an instance of the terminal (Ctrl+Alt+t)
+  * Get into the alien_eye virtual environment with the following command:
+    ```
+    workon alien_eye
+    ```
+  * cd into the directory where the github repository was cloned
+  * From that directory, cd into alien_eye/Production
+  * Run the following command:
+    ```
+    python3 main_control.py
+    ```
+  * To exit, make sure the eye animation window has focus (if in DEBUG mode, the camera input window will pull
+  focus away from the animation window when it first opens) and hit the Esc key on the keyboard
