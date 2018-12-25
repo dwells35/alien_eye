@@ -127,7 +127,7 @@
   * Name = Terminal, Command = gnome-terminal
   * Hit "Save" then "close"
   * Open a terminal instance (Ctrl+Alt+t)
-  * Edit the ```~/.bashrc``` file; at the bottom of the file, add in the following line:
+  * Edit the ```~/.bashrc``` file; at the bottom of the file, add in the following line:  
     ```source ~/Documents/alien_eye/run_alien_eye.sh```
   * Now, every time the current user logs in, Ubuntu will automatically open an instance of the termial.
   Doing so will call the .bashrc file and thus automatically run the main_control.py script.
