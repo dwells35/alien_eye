@@ -53,7 +53,7 @@
   sudo pip3 install virtualenv virtualenvwrapper
   ```
 
-* Now we will update our ~/.bashrc file to include the following lines at the _bottom_ of the file:  
+* Now we will update our ```~/.bashrc``` file to include the following lines at the _bottom_ of the file:  
 
   ```
   export WORKON_HOME=$HOME/.virtualenvs  
@@ -61,7 +61,7 @@
   source /usr/local/bin/virtualenvwrapper.sh
   ```
 
-* source the .bashrc file (source ~/.bashrc from the command line) or close the terminal and start a new terminal instance
+* source the .bashrc file (source ```~/.bashrc``` from the command line) or close the terminal and start a new terminal instance
 * Go to Documents (or wherever you cloned the github repo) and cd into alien_eye
 * Next, let's create our virtual environment called "alien_eye" with the following command:  
 
@@ -98,8 +98,8 @@
   ~/.virtualenvs/alien_eye/bin/python3 setup.py install
   ```
 
-# Last Check
- * Make sure that you have installed PyCapture into the virtual environment (and all other packages necessesary) by navigating to ~/Documents and running the following command:  
+# Package Check
+ * Make sure that you have installed PyCapture into the virtual environment (and all other packages necessesary) by navigating to ```~/Documents``` and running the following command:  
 
   ```
   pip freeze > current_state.txt
@@ -121,7 +121,18 @@
  * PyCapture2 will most likely show up as version 0.0.0, and I'm not sure why. As long as you use the correct setup.py file, it will work.
  * cmake and Cython are only useful if you were to compile any of these packages from source in the future (possible optimization gains from dlib and OpenCV). For this reaons, I left those in this environment.
 
-# How to Run the Eye
+# Setup Alien Eye Script to Run on Startup (really, login, and OS is set to auto-login)
+  * Open the Ubuntu "Startup Applications" application
+  * Click "Add"
+  * Name = Terminal, Command = gnome-terminal
+  * Hit "Save" then "close"
+  * Open a terminal instance (Ctrl+Alt+t)
+  * Edit the ```~/.bashrc``` file; at the bottom of the file, add in the following line:
+    ```source ~/Documents/alien_eye/run_alien_eye.sh```
+  * Now, every time the current user logs in, Ubuntu will automatically open an instance of the termial.
+  Doing so will call the .bashrc file and thus automatically run the main_control.py script.
+
+# Run the Eye Script Manually
   * Open an instance of the terminal (Ctrl+Alt+t)
   * Get into the alien_eye virtual environment with the following command:
     ```
