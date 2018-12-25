@@ -121,7 +121,7 @@
  * PyCapture2 will most likely show up as version 0.0.0, and I'm not sure why. As long as you use the correct setup.py file, it will work.
  * cmake and Cython are only useful if you were to compile any of these packages from source in the future (possible optimization gains from dlib and OpenCV). For this reaons, I left those in this environment.
 
-# Setup Alien Eye Script to Run on Startup (really, login, and OS is set to auto-login)
+# Setup Alien Eye Script to Run on Login (OS is set to auto-login)
   * Open the Ubuntu "Startup Applications" application
   * Click "Add"
   * Name = Terminal, Command = gnome-terminal
