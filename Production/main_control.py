@@ -211,7 +211,7 @@ def run_machine_vision(q, sub_pipe_end, video_dims):
         current_time = time.time()
         #Reading from the camera is I/O gating.
         frame = vs.read()
-        if frame != None:
+        if frame.all() != None:
             no_frame_count = 0
             frame = imutils.resize(frame, width=input_video_width)
 
